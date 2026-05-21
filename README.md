@@ -30,7 +30,7 @@ Sistema multi-agente para clasificación automática de documentos académicos, 
 │   └── calificador.md
 ├── agents/
 │   └── orchestrator.py       # Orquestación multi-agente
-├── llm_client.py             # Cliente para LMStudio (API OpenAI-compatible)
+├── llm_client.py             # Cliente para Ollama (API OpenAI-compatible)
 ├── classifier.py             # Clasificador de documentos por contenido
 ├── extractor.py              # Extractor de datos estructurados
 ├── pdf_utils.py              # Utilidades de lectura PDF
@@ -182,12 +182,12 @@ Tesseract OCR y Poppler son **requisitos obligatorios**. El programa los necesit
 
 > Si usas este proyecto desde una máquina limpia, instala Tesseract y Poppler **antes** de ejecutar el programa.
 
-## Configurar LMStudio
+## Configurar Ollama
 
-1. Descargar e instalar [LMStudio](https://lmstudio.ai/)
-2. Descargar un modelo open-source (ej: Qwen 2.5 7B Instruct)
-3. Iniciar el servidor API: `http://localhost:1234/v1`
-4. Ajustar `config.json` si es necesario
+1. Instalar [Ollama](https://ollama.ai/)
+2. Descargar un modelo: `ollama pull qwen3:4b` (o cualquier modelo compatible con OpenAI API)
+3. Ollama sirve automáticamente en `http://localhost:11434/v1` con API compatible con OpenAI
+4. Ajustar `config.json` si es necesario (modelo, temperatura, etc.)
 
 ## Baremo — Todos los documentos configurables
 
@@ -291,10 +291,10 @@ Cada campo tiene `keywords` (mapea palabra → puntuación) y/o `ranges` (mapea 
 ## Uso
 
 ```bash
-# Demo con datos simulados (sin LMStudio)
+# Demo con datos simulados (sin Ollama)
 python demo.py --mock
 
-# Pipeline completo (con LMStudio corriendo)
+# Pipeline completo (con Ollama corriendo)
 python demo.py
 
 # Modo agente (orquestación multi-agente)

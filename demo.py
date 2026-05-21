@@ -313,7 +313,7 @@ def run_demo(mock: bool = False):
             run_pipeline_mode(config)
         except Exception as e:
             logger.error(f"Error con LLM: {e}")
-            logger.info("¿Tienes LMStudio corriendo en http://localhost:1234?")
+            logger.info("¿Tienes Ollama corriendo? Revisa: ollama list")
             logger.info("Ejecuta: python demo.py --mock  (para usar datos simulados)")
             return
 

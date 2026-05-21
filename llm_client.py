@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class LLMClient:
     def __init__(self, config_path: str = "config.json"):
         with open(config_path, encoding="utf-8") as f:
-            cfg = json.load(f)["lmstudio"]
+            cfg = json.load(f)["ollama"]
         self.client = OpenAI(
             base_url=cfg["base_url"],
             api_key="not-needed",
