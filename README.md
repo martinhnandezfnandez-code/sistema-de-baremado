@@ -42,7 +42,7 @@ Sistema multi-agente para clasificación automática de documentos académicos, 
 
 ```mermaid
 graph TD
-    A[Alumno<br/>(Carpeta con PDFs)] -->|Aporta documentos| B(Sistema de Baremado)
+    A["Alumno (Carpeta con PDFs)"] -->|Aporta documentos| B(Sistema de Baremado)
     C[Administrador] -->|Revisa descartados| B
     D[Moderador / IA] -->|Clasifica documentos| B
     D -->|Extrae datos| B
@@ -59,11 +59,11 @@ graph TD
 sequenceDiagram
     participant P as Planificador
     participant I as Identificador
-    participant R1 as Revisor 1<br/>(Carta + CV)
-    participant R2 as Revisor 2<br/>(Expediente + Nota)
-    participant R3 as Revisor 3<br/>(Solicitud)
+    participant R1 as "Revisor 1 (Carta+CV)"
+    participant R2 as "Revisor 2 (Exp+Nota)"
+    participant R3 as "Revisor 3 (Solicitud)"
     participant C as Calificador
-    participant Py as Python<br/>(Validador + Scorer)
+    participant Py as "Python (Validador+Scorer)"
 
     P->>P: Genera Bloques.md
     loop Por cada alumno
