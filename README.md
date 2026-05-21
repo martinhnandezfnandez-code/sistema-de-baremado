@@ -160,7 +160,7 @@ cd sistema-de-baremado
 pip install -r requirements.txt
 ```
 
-### ⚠️ Dependencias del sistema (OBLIGATORIAS)
+### Dependencias del sistema (OBLIGATORIAS)
 
 Tesseract OCR y Poppler son **requisitos obligatorios**. El programa los necesita aunque los PDFs tengan texto incrustado, porque cualquier PDF puede contener páginas mixtas (texto + imágenes escaneadas). Sin ellos, el programa **no podrá procesar** los documentos y descartará a los alumnos como "Sin PDFs legibles".
 
@@ -174,7 +174,7 @@ Tesseract OCR y Poppler son **requisitos obligatorios**. El programa los necesit
 - **Linux**: `sudo apt install poppler-utils`
 - **macOS**: `brew install poppler`
 
-> ✅ Si usas este proyecto desde una máquina limpia, instala Tesseract y Poppler **antes** de ejecutar el programa.
+> Si usas este proyecto desde una máquina limpia, instala Tesseract y Poppler **antes** de ejecutar el programa.
 
 ## Configurar LMStudio
 
