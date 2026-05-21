@@ -2,6 +2,8 @@
 
 Sistema multi-agente para clasificación automática de documentos académicos, extracción de datos estructurados y generación de baremos.
 
+> **Soporte OCR**: los PDFs escaneados (imágenes) se procesan automáticamente mediante Tesseract OCR cuando la extracción de texto directa no obtiene resultados.
+
 ## Principio Clave
 
 > **La IA NO decide admitidos/excluidos.**  
@@ -97,8 +99,12 @@ sequenceDiagram
 ## Flujo del Pipeline
 
 ```
-INPUT/ (PDFs)
+INPUT/ (PDFs — texto o escaneados)
     │
+    ▼
+PDF UTILS (Python) ──── Extrae texto del PDF
+    │                    • pdfminer / PyPDF2 (texto directo)
+    │                    • Tesseract OCR (fallback si es escaneado)
     ▼
 IDENTIFICADOR (IA) ──── Clasifica documentos por contenido
     │                    Categorías: solicitud, carta_aceptación,
@@ -131,10 +137,11 @@ EXPORT (Python) ─────── Genera Excel con ranking
 ## Decisiones Python vs IA
 
 | Decisión | Responsable |
-|---|---|
+|---|---|---|
 | Clasificar tipo de documento | IA |
 | Extraer datos (nombre, notas, etc.) | IA |
 | Evaluar calidad del documento (0-10) | IA |
+| Extraer texto de PDFs (con OCR si es escaneado) | **Python** |
 | ¿Faltan documentos requeridos? | **Python** |
 | ¿La confianza es suficiente? | **Python** |
 | Cálculo de puntuación final | **Python** |
@@ -149,9 +156,25 @@ EXPORT (Python) ─────── Genera Excel con ranking
 git clone https://github.com/martinhnandezfnandez-code/sistema-de-baremado.git
 cd sistema-de-baremado
 
-# Instalar dependencias
-pip install openai pypdf2 pdfminer.six openpyxl pydantic reportlab
+# Instalar dependencias Python
+pip install -r requirements.txt
 ```
+
+### ⚠️ Dependencias del sistema (OBLIGATORIAS)
+
+Tesseract OCR y Poppler son **requisitos obligatorios**. El programa los necesita aunque los PDFs tengan texto incrustado, porque cualquier PDF puede contener páginas mixtas (texto + imágenes escaneadas). Sin ellos, el programa **no podrá procesar** los documentos y descartará a los alumnos como "Sin PDFs legibles".
+
+**[Tesseract OCR](https://github.com/tesseract-ocr/tesseract)** — Motor de OCR
+- **Windows**: Descargar installer desde [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki). Marcar idioma Spanish durante la instalación.
+- **Linux**: `sudo apt install tesseract-ocr tesseract-ocr-spa`
+- **macOS**: `brew install tesseract`
+
+**[Poppler](https://poppler.freedesktop.org/)** — Conversor de PDF a imágenes
+- **Windows**: Descargar desde [poppler-windows](https://github.com/oschwartz10612/poppler-windows/releases/), extraer y añadir `Library\bin\` al PATH del sistema.
+- **Linux**: `sudo apt install poppler-utils`
+- **macOS**: `brew install poppler`
+
+> ✅ Si usas este proyecto desde una máquina limpia, instala Tesseract y Poppler **antes** de ejecutar el programa.
 
 ## Configurar LMStudio
 
