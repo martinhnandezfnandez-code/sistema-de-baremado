@@ -175,7 +175,8 @@ python main.py --mode agent
 # Modo pipeline directo
 python main.py --mode pipeline
 ```
-
+(Tú solo ejecutas python main.py --mode agent y el orquestador hace todo. 
+Si quieres pararte entre pasos a inspeccionar, puedes ejecutar el pipeline paso a paso con python main.py --mode pipeline y ver los JSON/estado.md intermedios.)
 ## Estructura de Entrada
 
 ```
