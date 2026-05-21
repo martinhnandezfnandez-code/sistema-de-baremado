@@ -333,27 +333,29 @@ def _run_mock_pipeline(students: list):
         "alumno_001": {
             "nota_media": {"nota_media": 8.7, "escala": "10"},
             "expediente_academico": {"total_asignaturas": 40, "asignaturas_aprobadas": 38},
-            "cv": {"anos_experiencia": 1, "idiomas": ["Inglés", "Francés"], "habilidades_clave": ["Python", "ML", "SQL"]},
-            "carta_aceptacion": {},
-            "solicitud": {},
+            "cv": {"anos_experiencia": 1, "idiomas": ["Inglés", "Francés"], "habilidades_clave": ["Python", "ML", "SQL"], "nivel_estudios": "grado", "grupo_profesional": "ingenieria"},
+            "carta_aceptacion": {"tipo_institucion": "universidad", "tipo_programa": "master", "duracion_meses": 24, "cargo_firmante": "rector"},
+            "solicitud": {"completitud": "completa", "motivacion": "alta", "presentacion": "digital"},
         },
         "alumno_002": {
             "nota_media": {"nota_media": 3.8, "escala": "4.0"},
             "expediente_academico": {"total_asignaturas": 36, "asignaturas_aprobadas": 34},
-            "cv": {"anos_experiencia": 0.5, "idiomas": ["Español", "Inglés", "Alemán"], "habilidades_clave": ["Python", "R", "TensorFlow", "PyTorch", "SQL", "Spark", "Docker"]},
-            "carta_aceptacion": {},
-            "solicitud": {},
+            "cv": {"anos_experiencia": 0.5, "idiomas": ["Español", "Inglés", "Alemán"], "habilidades_clave": ["Python", "R", "TensorFlow", "PyTorch", "SQL", "Spark", "Docker"], "nivel_estudios": "master", "grupo_profesional": "tecnologia"},
+            "carta_aceptacion": {"tipo_institucion": "facultad", "tipo_programa": "grado", "duracion_meses": 48, "cargo_firmante": "decano"},
+            "solicitud": {"completitud": "firmada", "motivacion": "media", "presentacion": "formulario"},
         },
         "alumno_003": {
             "nota_media": {"nota_media": 6.5, "escala": "10"},
             "expediente_academico": {"total_asignaturas": 36, "asignaturas_aprobadas": 28},
-            "cv": {"anos_experiencia": 0, "idiomas": ["Inglés"], "habilidades_clave": ["Estadística", "R"]},
-            "carta_aceptacion": {},
-            "solicitud": {},
+            "cv": {"anos_experiencia": 0, "idiomas": ["Inglés"], "habilidades_clave": ["Estadística", "R"], "nivel_estudios": "doctorado", "grupo_profesional": "sanidad"},
+            "carta_aceptacion": {"tipo_institucion": "instituto", "tipo_programa": "curso", "duracion_meses": 6, "cargo_firmante": "coordinador"},
+            "solicitud": {"completitud": "parcial", "motivacion": "baja", "presentacion": "físico"},
         },
     }
 
-    scorer = Scorer()
+    import json as _json
+    _cfg = _json.loads(Path("config.json").read_text(encoding="utf-8"))
+    scorer = Scorer(baremo=_cfg.get("baremo"), baremo_docs=_cfg.get("baremo_docs"))
     validator = Validator()
     active_scores = []
     rejected = []

@@ -56,15 +56,13 @@ class LLMClient:
 
     def extract_data(self, categoria: str, text: str) -> dict:
         schemas = {
-            "solicitud": (
-                "Extrae del siguiente documento de solicitud: nombre completo, dni/pasaporte, "
-                "email, telefono, programa_solicitado. "
-                "Responde JSON: {\"nombre\": \"\", \"dni\": \"\", \"email\": \"\", \"telefono\": \"\", \"programa\": \"\"}"
-            ),
             "carta_aceptacion": (
                 "Extrae del siguiente documento de carta de aceptación: institucion, programa, "
-                "fecha_inicio, fecha_fin, nombre_estudiante, nombre_firmante, cargo_firmante. "
-                "Responde JSON: {\"institucion\": \"\", \"programa\": \"\", \"fecha_inicio\": \"\", \"fecha_fin\": \"\", \"nombre_estudiante\": \"\", \"nombre_firmante\": \"\", \"cargo_firmante\": \"\"}"
+                "fecha_inicio, fecha_fin, nombre_estudiante, nombre_firmante, cargo_firmante, "
+                "tipo_institucion (universidad/facultad/escuela/instituto/centro/academia/otros), "
+                "tipo_programa (doctorado/master/grado/licenciatura/diplomatura/curso/otros), "
+                "duracion_meses (duración estimada en meses, número). "
+                "Responde JSON: {\"institucion\": \"\", \"programa\": \"\", \"fecha_inicio\": \"\", \"fecha_fin\": \"\", \"nombre_estudiante\": \"\", \"nombre_firmante\": \"\", \"cargo_firmante\": \"\", \"tipo_institucion\": \"\", \"tipo_programa\": \"\", \"duracion_meses\": 0}"
             ),
             "expediente_academico": (
                 "Extrae del siguiente expediente académico: nombre_estudiante, institucion, "
@@ -77,8 +75,17 @@ class LLMClient:
             ),
             "cv": (
                 "Extrae del siguiente CV: nombre_completo, email, telefono, "
-                "titulacion, anos_experiencia, habilidades_clave (array), idiomas (array). "
-                "Responde JSON: {\"nombre_completo\": \"\", \"email\": \"\", \"telefono\": \"\", \"titulacion\": \"\", \"anos_experiencia\": 0, \"habilidades_clave\": [], \"idiomas\": []}"
+                "titulacion, anos_experiencia, habilidades_clave (array), idiomas (array), "
+                "nivel_estudios (el más alto: doctorado/master/grado/licenciatura/fp/bachillerato/secundaria), "
+                "grupo_profesional (sector: sanidad/educacion/ingenieria/tecnologia/administracion/comercial/otros). "
+                "Responde JSON: {\"nombre_completo\": \"\", \"email\": \"\", \"telefono\": \"\", \"titulacion\": \"\", \"anos_experiencia\": 0, \"habilidades_clave\": [], \"idiomas\": [], \"nivel_estudios\": \"\", \"grupo_profesional\": \"\"}"
+            ),
+            "solicitud": (
+                "Extrae del siguiente documento de solicitud: nombre_completo, dni/pasaporte, "
+                "email, telefono, programa_solicitado, "
+                "completitud (completa/firmada/incompleta/parcial), "
+                "motivacion (alta/media/baja). "
+                "Responde JSON: {\"nombre_completo\": \"\", \"dni\": \"\", \"email\": \"\", \"telefono\": \"\", \"programa\": \"\", \"completitud\": \"\", \"motivacion\": \"\"}"
             ),
         }
         instruccion = schemas.get(categoria, "Extrae toda la información relevante en formato JSON.")

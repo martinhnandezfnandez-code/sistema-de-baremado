@@ -62,7 +62,7 @@ def run_pipeline_mode(config: dict):
     classifier = Classifier(llm)
     extractor = Extractor(llm)
     validator = Validator(min_confidence=config["pipeline"]["min_confidence"])
-    scorer = Scorer(baremo=config.get("baremo"))
+    scorer = Scorer(baremo=config.get("baremo"), baremo_docs=config.get("baremo_docs"))
     exporter = ExcelExporter()
 
     students = get_student_folders()

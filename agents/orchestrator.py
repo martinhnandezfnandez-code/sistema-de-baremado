@@ -334,7 +334,7 @@ class AgentOrchestrator:
             logger.info(f"  {student_id} descartado por validación: {validation.descripcion}")
             return
 
-        scorer = Scorer(baremo=self.config.get("baremo"))
+        scorer = Scorer(baremo=self.config.get("baremo"), baremo_docs=self.config.get("baremo_docs"))
         score = scorer.score_student(student_id, validation.datos)
 
         # Guardar baremo_final.md

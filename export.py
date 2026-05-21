@@ -45,24 +45,41 @@ class ExcelExporter:
         ws = wb.active
         ws.title = "Admitidos"
 
+        # Collect all detail field names from all students
+        seen_cols: set[tuple[str, str]] = set()
+        for s in students:
+            for doc_type, fields in s.get("detalle_docs", {}).items():
+                for field_name in fields:
+                    seen_cols.add((doc_type, field_name))
+        detail_cols = sorted(seen_cols)
+
         headers = [
             "Orden", "ID Alumno", "Puntuación Total",
             "Nota Media", "Expediente", "CV",
             "Carta Aceptación", "Solicitud",
         ]
+        for doc_type, field_name in detail_cols:
+            label = f"{doc_type} ({field_name})" if doc_type != field_name else field_name
+            headers.append(label)
+
         self._style_header(ws, headers)
 
         for i, s in enumerate(students, 1):
             row = i + 1
             p = s.get("puntuaciones", {})
-            ws.cell(row=row, column=1, value=s.get("orden", i))
-            ws.cell(row=row, column=2, value=s.get("student_id", ""))
-            ws.cell(row=row, column=3, value=s.get("puntuacion_total", 0))
-            ws.cell(row=row, column=4, value=p.get("nota_media", ""))
-            ws.cell(row=row, column=5, value=p.get("expediente_academico", ""))
-            ws.cell(row=row, column=6, value=p.get("cv", ""))
-            ws.cell(row=row, column=7, value=p.get("carta_aceptacion", ""))
-            ws.cell(row=row, column=8, value=p.get("solicitud", ""))
+            det = s.get("detalle_docs", {})
+            col = 1
+            ws.cell(row=row, column=col, value=s.get("orden", i)); col += 1
+            ws.cell(row=row, column=col, value=s.get("student_id", "")); col += 1
+            ws.cell(row=row, column=col, value=s.get("puntuacion_total", 0)); col += 1
+            ws.cell(row=row, column=col, value=p.get("nota_media", "")); col += 1
+            ws.cell(row=row, column=col, value=p.get("expediente_academico", "")); col += 1
+            ws.cell(row=row, column=col, value=p.get("cv", "")); col += 1
+            ws.cell(row=row, column=col, value=p.get("carta_aceptacion", "")); col += 1
+            ws.cell(row=row, column=col, value=p.get("solicitud", "")); col += 1
+            for doc_type, field_name in detail_cols:
+                val = det.get(doc_type, {}).get(field_name, {}).get("puntos", "")
+                ws.cell(row=row, column=col, value=val); col += 1
 
         self._auto_width(ws, headers)
 

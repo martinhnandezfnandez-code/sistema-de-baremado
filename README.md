@@ -116,9 +116,12 @@ EXTRACTOR (IA) ──────── Extrae datos estructurados (JSON)
 VALIDATOR (Python) ──── Verifica que todos los docs requeridos existen
     │                    Si faltan → Descartado
     ▼
-SCORER (Python) ─────── Aplica baremo con pesos
-    │                    nota_media=40%, expediente=30%,
-    │                    CV=15%, carta=10%, solicitud=5%
+SCORER (Python) ─────── Aplica baremo configurable
+    │                    • Nota media 40% (rangos)
+    │                    • Expediente 30% (% aprobados)
+    │                    • CV 15% (keywords: estudios, grupo, exp.)
+    │                    • Carta 10% (keywords: institución, programa...)
+    │                    • Solicitud 5% (keywords: completitud, motivación)
     ▼
 EXPORT (Python) ─────── Genera Excel con ranking
 ```
@@ -140,11 +143,12 @@ EXPORT (Python) ─────── Genera Excel con ranking
 |---|---|---|
 | Clasificar tipo de documento | IA |
 | Extraer datos (nombre, notas, etc.) | IA |
-| Evaluar calidad del documento (0-10) | IA |
 | Extraer texto de PDFs (con OCR si es escaneado) | **Python** |
+| Extraer datos estructurados (nombre, estudios, keywords...) | IA |
+| Clasificar tipo de documento por contenido | IA |
 | ¿Faltan documentos requeridos? | **Python** |
 | ¿La confianza es suficiente? | **Python** |
-| Cálculo de puntuación final | **Python** |
+| **Aplicar baremo por keywords y rangos** | **Python** |
 | Ranking y ordenación | **Python** |
 | Generación de Excel | **Python** |
 | Decisión final (admitido/excluido) | **Python** |
@@ -182,6 +186,105 @@ Tesseract OCR y Poppler son **requisitos obligatorios**. El programa los necesit
 2. Descargar un modelo open-source (ej: Qwen 2.5 7B Instruct)
 3. Iniciar el servidor API: `http://localhost:1234/v1`
 4. Ajustar `config.json` si es necesario
+
+## Baremo — Todos los documentos configurables
+
+| Documento | Peso | Método |
+|---|---|---|
+| Nota media | **40%** | Numérico con rangos |
+| Expediente académico | **30%** | % aprobados con rangos |
+| CV | **15%** | Keywords (estudios, grupo, experiencia) |
+| Carta de aceptación | **10%** | Keywords (institución, programa, duración, firmante) |
+| Solicitud | **5%** | Keywords (completitud, motivación) |
+| **Total** | **100%** | |
+
+### ✅ Cómo cambiar el baremo (guía paso a paso)
+
+Todo se configura en `config.json` → `baremo_docs`. Ahí tienes una entrada por cada tipo de documento. No necesitas tocar Python.
+
+#### Para documentos numéricos (`nota_media` y `expediente`)
+
+Los rangos definen qué puntuación se asigna según el valor:
+
+```json
+"nota_media": {
+  "method": "numerical",
+  "field": "nota_media",
+  "scale_field": "escala",
+  "scales": { "10": 1.0, "4": 2.5, "100": 0.1 },
+  "ranges": [
+    { "min": 9.5, "score": 10 },
+    { "min": 9,   "score": 9.5 },
+    { "min": 8,   "score": 8.5 },
+    { "min": 0,   "score": 0 }
+  ]
+}
+```
+
+`scales` convierte entre escalas (nota sobre 4 → multiplica por 2.5). `ranges` asigna la puntuación: si la nota es ≥ 9.5 → 10 pts, si es ≥ 9 → 9.5 pts...
+
+Para `expediente_academico` es igual pero con `min_pct` (% de asignaturas aprobadas).
+
+#### Para documentos por keywords (`cv`, `carta`, `solicitud`)
+
+Cada campo tiene `keywords` (mapea palabra → puntuación) y/o `ranges` (mapea valor numérico → puntuación). El campo `weight` suma dentro del documento.
+
+**Ejemplo: cambiar CV para una convocatoria de informática:**
+
+```json
+"cv": {
+  "method": "keyword",
+  "fields": {
+    "nivel_estudios": {
+      "weight": 3,
+      "keywords": {
+        "doctorado": 3, "master": 2.5, "grado": 2,
+        "fp superior": 1.5
+      },
+      "default": 0
+    },
+    "grupo_profesional": {
+      "weight": 4,
+      "keywords": {
+        "informática": 4, "ingeniería software": 4,
+        "tecnología": 3, "administración": 1
+      },
+      "default": 0.5
+    },
+    "experiencia": {
+      "weight": 3,
+      "ranges": [
+        { "min": 10, "score": 3 }, { "min": 5, "score": 2.5 },
+        { "min": 3, "score": 2 }, { "min": 1, "score": 1 },
+        { "min": 0, "score": 0.5 }
+      ]
+    }
+  }
+}
+```
+
+**Ejemplo: que la carta de aceptación puntúe más según el firmante:**
+
+```json
+"carta_aceptacion": {
+  "method": "keyword",
+  "fields": {
+    "tipo_institucion": {
+      "weight": 3,
+      "keywords": { "universidad": 3, "instituto": 1.5, "academia": 0.5 },
+      "default": 1
+    },
+    "firmante": {
+      "weight": 2,
+      "keywords": { "rector": 2, "decano": 2, "director": 1.5, "coordinador": 1 },
+      "default": 0.5
+    },
+    ...
+  }
+}
+```
+
+> **Regla general**: la IA extrae los campos del documento, Python busca las keywords en esos campos y suma puntos. Si ninguna keyword coincide, usa `default`.
 
 ## Uso
 
