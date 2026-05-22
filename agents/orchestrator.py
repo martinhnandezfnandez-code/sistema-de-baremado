@@ -2,17 +2,17 @@
 AgentOrchestrator — Coordina el flujo multi-agente mediante archivos de estado.
 
 Flujo:
-  PLANIFICADOR → genera Bloques.md
-    → IDENTIFICADOR → clasifica docs, genera estado.md
-      → REVISOR_1, REVISOR_2, REVISOR_3 (paralelo)
-        → CALIFICADOR → baremo_final.md
-          → PLANIFICADOR marca COMPLETADO
+  PLANIFICADOR → genera tracking.md
+    → Por cada alumno (uno a uno):
+      → IDENTIFICADOR → clasifica docs, genera estado.md
+        → REVISOR_1, REVISOR_2, REVISOR_3 (paralelo)
+          → CALIFICADOR → baremo_final.md
+            → PLANIFICADOR marca COMPLETADO en tracking.md
 """
 
 import json
 import logging
 import shutil
-import time
 from pathlib import Path
 from datetime import datetime
 
@@ -32,8 +32,6 @@ class AgentOrchestrator:
     def __init__(self, config: dict):
         self.config = config
         self.llm = LLMClient()
-        self.block_size = config["pipeline"]["block_size"]
-        self.current_block = 0
         self.active_students: list[str] = []
 
         for d in [TEMP_DIR, JSON_DIR, RESULTS_DIR, DESCARTADOS_DIR]:
@@ -47,27 +45,18 @@ class AgentOrchestrator:
             logger.warning("No hay alumnos para procesar")
             return
 
-        blocks = self._split_blocks(students)
-
-        # Planificador: genera Bloques.md
-        self._generar_bloques(blocks)
+        # Planificador: genera tracking.md con todos los alumnos
+        self._generar_tracking(students)
 
         active_scores = []
         rejected = []
 
-        for block_idx, block in enumerate(blocks):
-            self.current_block = block_idx
-            logger.info(f"\n--- Bloque {block_idx + 1}/{len(blocks)} ({len(block)} alumnos) ---")
-
-            for student_id in block:
-                score, rejection = self._process_student(student_id)
-                if score:
-                    active_scores.append(score)
-                elif rejection:
-                    rejected.append(rejection)
-
-            # Planificador: marca bloque COMPLETADO
-            self._marcar_bloque_completado(block_idx)
+        for student_id in students:
+            score, rejection = self._process_student(student_id)
+            if score:
+                active_scores.append(score)
+            elif rejection:
+                rejected.append(rejection)
 
         # Generar Excel
         if active_scores:
@@ -95,33 +84,14 @@ class AgentOrchestrator:
             [d.name for d in INPUT_DIR.iterdir() if d.is_dir() and not d.name.startswith("_")],
         )
 
-    def _split_blocks(self, students: list[str]) -> list[list[str]]:
-        return [students[i:i + self.block_size] for i in range(0, len(students), self.block_size)]
-
-    def _generar_bloques(self, blocks: list[list[str]]):
-        """Planificador: escribe Bloques.md"""
-        lines = ["# Bloques de Trabajo\n"]
-        for i, block in enumerate(blocks):
-            status = "COMPLETADO" if i < self.current_block else "EN_PROGRESO" if i == self.current_block else "PENDIENTE"
-            lines.append(f"## Bloque {i + 1} (alumnos {block[0]}–{block[-1]})")
-            lines.append(f"<promise>{status}</promise>\n")
-            for sid in block:
-                lines.append(f"- [ ] {sid} — PENDIENTE")
-            lines.append("")
-        (TEMP_DIR / "Bloques.md").write_text("\n".join(lines), encoding="utf-8")
-        logger.info(f"Bloques.md generado con {len(blocks)} bloques")
-
-    def _marcar_bloque_completado(self, block_idx: int):
-        """Planificador: marca el bloque como COMPLETADO en Bloques.md"""
-        path = TEMP_DIR / "Bloques.md"
-        if not path.exists():
-            return
-        content = path.read_text(encoding="utf-8")
-        tag = f"<promise>EN_PROGRESO</promise>"
-        new_tag = f"<promise>COMPLETADO</promise>"
-        content = content.replace(f"## Bloque {block_idx + 1}", f"## Bloque {block_idx + 1}", 1)
-        content = content.replace(tag, new_tag, 1) if tag in content else content
-        path.write_text(content, encoding="utf-8")
+    def _generar_tracking(self, students: list[str]):
+        """Planificador: escribe tracking.md con todos los alumnos en lista plana."""
+        lines = ["# Tracking de Alumnos\n"]
+        lines.append(f"**Total:** {len(students)} alumnos\n")
+        for sid in students:
+            lines.append(f"- [ ] {sid} — PENDIENTE")
+        (TEMP_DIR / "tracking.md").write_text("\n".join(lines), encoding="utf-8")
+        logger.info(f"tracking.md generado con {len(students)} alumnos")
 
     def _process_student(self, student_id: str) -> tuple:
         """Procesa un alumno completo: IDENTIFICADOR → REVISORES → CALIFICADOR.
@@ -415,8 +385,8 @@ class AgentOrchestrator:
         return (score.to_dict(), None)
 
     def _marcar_alumno_completado(self, student_id: str):
-        """Planificador: marca alumno como COMPLETADO en Bloques.md."""
-        path = TEMP_DIR / "Bloques.md"
+        """Planificador: marca alumno como COMPLETADO en tracking.md."""
+        path = TEMP_DIR / "tracking.md"
         if not path.exists():
             return
         content = path.read_text(encoding="utf-8")

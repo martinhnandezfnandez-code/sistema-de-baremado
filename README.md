@@ -20,7 +20,7 @@ Sistema multi-agente para clasificación automática de documentos académicos, 
 ├── json/                     # Datos extraídos por la IA (JSON)
 ├── results/                  # Excel generado
 ├── descartados/              # Alumnos con documentación incompleta
-├── temp/                     # Comunicación entre agentes (Bloques.md, estado.md)
+├── temp/                     # Comunicación entre agentes (tracking.md, estado.md)
 ├── skills/                   # Skills de los agentes
 │   ├── planificador.md
 │   ├── identificador.md
@@ -69,8 +69,9 @@ sequenceDiagram
     participant C as Calificador
     participant Py as "Python (Validador+Scorer)"
 
-    P->>P: Genera Bloques.md
-    loop Por cada alumno
+    P->>P: Genera tracking.md (todos los alumnos)
+
+    loop Por cada alumno (uno a uno)
         P->>I: Procesar alumno
         I->>I: Clasifica PDFs
         I->>I: Extrae datos
@@ -93,8 +94,9 @@ sequenceDiagram
         Py-->>C: Puntuación
         C-->>P: baremo_final.md
 
-        P->>P: Marcar COMPLETADO en Bloques.md
+        P->>P: Marcar COMPLETADO en tracking.md
     end
+
     P->>P: Exportar Excel
 ```
 
@@ -132,7 +134,7 @@ EXPORT (Python) ─────── Genera Excel con ranking
 
 | Agente | Skill | Función |
 |---|---|---|
-| **Planificador** | `skills/planificador.md` | Divide alumnos en bloques de 50, orquesta el flujo |
+| **Planificador** | `skills/planificador.md` | Genera tracking.md, orquesta el flujo alumno por alumno |
 | **Identificador** | `skills/identificador.md` | Clasifica PDFs por contenido, mapea documentos |
 | **Revisor 1** | `skills/revisor_carta_cv.md` | Evalúa carta de aceptación y CV |
 | **Revisor 2** | `skills/revisor_expediente.md` | Evalúa expediente académico y nota media |

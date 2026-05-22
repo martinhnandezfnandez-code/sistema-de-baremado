@@ -13,7 +13,6 @@
       "cv",
       "solicitud"
     ],
-    "block_size": 50,
     "min_confidence": "MEDIA"
   },
   "baremo": {
