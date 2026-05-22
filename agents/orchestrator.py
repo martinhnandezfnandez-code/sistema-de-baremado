@@ -52,16 +52,40 @@ class AgentOrchestrator:
         # Planificador: genera Bloques.md
         self._generar_bloques(blocks)
 
+        active_scores = []
+        rejected = []
+
         for block_idx, block in enumerate(blocks):
             self.current_block = block_idx
             logger.info(f"\n--- Bloque {block_idx + 1}/{len(blocks)} ({len(block)} alumnos) ---")
 
             for student_id in block:
-                self._process_student(student_id)
+                score, rejection = self._process_student(student_id)
+                if score:
+                    active_scores.append(score)
+                elif rejection:
+                    rejected.append(rejection)
 
             # Planificador: marca bloque COMPLETADO
             self._marcar_bloque_completado(block_idx)
 
+        # Generar Excel
+        if active_scores:
+            from scorer import Scorer
+            from export import ExcelExporter
+
+            scorer = Scorer(baremo=self.config.get("baremo"), baremo_docs=self.config.get("baremo_docs"))
+            ranked_dicts = sorted(active_scores, key=lambda s: s["puntuacion_total"], reverse=True)
+            for i, s in enumerate(ranked_dicts, 1):
+                s["orden"] = i
+
+            exporter = ExcelExporter()
+            path = exporter.export_results(ranked_dicts, rejected)
+            logger.info(f"\nExcel generado: {path}")
+        else:
+            logger.warning("No hay alumnos activos para puntuar")
+
+        logger.info(f"Resumen: {len(active_scores)} admitidos, {len(rejected)} descartados")
         logger.info("=== ORQUESTACIÓN COMPLETADA ===")
 
     def _get_all_students(self) -> list[str]:
@@ -99,27 +123,39 @@ class AgentOrchestrator:
         content = content.replace(tag, new_tag, 1) if tag in content else content
         path.write_text(content, encoding="utf-8")
 
-    def _process_student(self, student_id: str):
-        """Procesa un alumno completo: IDENTIFICADOR → REVISORES → CALIFICADOR."""
+    def _process_student(self, student_id: str) -> tuple:
+        """Procesa un alumno completo: IDENTIFICADOR → REVISORES → CALIFICADOR.
+
+        Returns:
+            (score_dict, rejection_dict) — uno de los dos es None.
+        """
         logger.info(f"\n{'='*50}")
         logger.info(f"Procesando: {student_id}")
 
         # 1 — IDENTIFICADOR
-        estado = self._identificador_run(student_id)
+        estado, rejection = self._identificador_run(student_id)
         if not estado:
-            return
+            return (None, rejection)
 
         # 2 — REVISORES (paralelo simulado)
         self._revisores_run(student_id, estado)
 
         # 3 — CALIFICADOR
-        self._calificador_run(student_id)
+        score, rejection = self._calificador_run(student_id)
+        if score:
+            # 4 — Planificador: marca alumno COMPLETADO
+            self._marcar_alumno_completado(student_id)
+            return (score, None)
+        else:
+            return (None, rejection)
 
-        # 4 — Planificador: marca alumno COMPLETADO
-        self._marcar_alumno_completado(student_id)
+    def _identificador_run(self, student_id: str) -> tuple:
+        """Identificador: clasifica documentos y genera estado.md.
 
-    def _identificador_run(self, student_id: str) -> dict | None:
-        """Identificador: clasifica documentos y genera estado.md"""
+        Returns:
+            (estado_dict, None) si el alumno sigue activo,
+            (None, rejection_dict) si es descartado.
+        """
         from pdf_utils import extract_texts_from_student
         from classifier import Classifier
         from extractor import Extractor
@@ -129,8 +165,12 @@ class AgentOrchestrator:
         pdf_texts = extract_texts_from_student(student_id)
         if not pdf_texts:
             logger.warning(f"  Sin PDFs, moviendo a descartados")
+            rejection = {
+                "student_id": student_id, "estado": "Descartado",
+                "descripcion": "Sin PDFs legibles", "missing_docs": [], "low_confidence_docs": [],
+            }
             self._mover_a_descartados(student_id, "Sin PDFs legibles")
-            return None
+            return (None, rejection)
 
         classifier = Classifier(self.llm)
         classified = classifier.classify(pdf_texts)
@@ -147,8 +187,13 @@ class AgentOrchestrator:
         estado = self._generar_estado_md(student_id, classified, extracted)
         return estado
 
-    def _generar_estado_md(self, student_id: str, classified: dict, extracted: dict) -> dict:
-        """Escribe estado.md para el alumno."""
+    def _generar_estado_md(self, student_id: str, classified: dict, extracted: dict) -> tuple:
+        """Escribe estado.md para el alumno.
+
+        Returns:
+            (estado_dict, None) si activo,
+            (None, rejection_dict) si descartado.
+        """
         doc_types = {
             "carta_aceptacion": "NO_ENCONTRADO",
             "expediente_academico": "NO_ENCONTRADO",
@@ -213,15 +258,20 @@ class AgentOrchestrator:
         logger.info(f"  estado.md generado — {estado_alumno}")
 
         if estado_alumno == "Descartado":
+            rejection = {
+                "student_id": student_id, "estado": "Descartado",
+                "descripcion": descripcion, "missing_docs": sorted(missing),
+                "low_confidence_docs": [],
+            }
             self._mover_a_descartados(student_id, descripcion)
-            return None
+            return (None, rejection)
 
-        return {
+        return ({
             "student_id": student_id,
             "doc_types": doc_types,
             "classified": classified,
             "extracted": extracted,
-        }
+        }, None)
 
     def _revisores_run(self, student_id: str, estado: dict):
         """Ejecuta los 3 revisores (paralelo simulado con skills)."""
@@ -310,20 +360,27 @@ class AgentOrchestrator:
             content = content.replace(old, new)
         estado_path.write_text(content, encoding="utf-8")
 
-    def _calificador_run(self, student_id: str):
-        """Calificador: lee los revisores y genera baremo_final.md y Excel."""
+    def _calificador_run(self, student_id: str) -> tuple:
+        """Calificador: lee los revisores y genera baremo_final.md.
+
+        Returns:
+            (score_dict, None) si admitido,
+            (None, rejection_dict) si descartado.
+        """
         from scorer import Scorer
         from validator import Validator
-        from export import ExcelExporter
 
         logger.info(f"[CALIFICADOR] Puntuando a {student_id}")
 
-        estado_path = TEMP_DIR / f"{student_id}_estado.md"
         json_path = JSON_DIR / f"{student_id}.json"
 
         if not json_path.exists():
             logger.warning(f"  No hay JSON para {student_id}")
-            return
+            return (None, {
+                "student_id": student_id, "estado": "Descartado",
+                "descripcion": "No hay JSON de datos extraídos",
+                "missing_docs": [], "low_confidence_docs": [],
+            })
 
         extracted = json.loads(json_path.read_text(encoding="utf-8"))
 
@@ -332,7 +389,7 @@ class AgentOrchestrator:
 
         if validation.estado == "Descartado":
             logger.info(f"  {student_id} descartado por validación: {validation.descripcion}")
-            return
+            return (None, validation.to_dict())
 
         scorer = Scorer(baremo=self.config.get("baremo"), baremo_docs=self.config.get("baremo_docs"))
         score = scorer.score_student(student_id, validation.datos)
@@ -355,6 +412,7 @@ class AgentOrchestrator:
             "\n".join(baremo_lines), encoding="utf-8"
         )
         logger.info(f"  Puntuación: {score.puntuacion_total}")
+        return (score.to_dict(), None)
 
     def _marcar_alumno_completado(self, student_id: str):
         """Planificador: marca alumno como COMPLETADO en Bloques.md."""
