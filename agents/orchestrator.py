@@ -4,10 +4,9 @@ AgentOrchestrator — Coordina el flujo multi-agente mediante archivos de estado
 Flujo:
   PLANIFICADOR → genera tracking.md
     → Por cada alumno (uno a uno):
-      → IDENTIFICADOR → clasifica docs, genera estado.md
-        → REVISOR_1, REVISOR_2, REVISOR_3 (paralelo)
-          → CALIFICADOR → baremo_final.md
-            → PLANIFICADOR marca COMPLETADO en tracking.md
+      → IDENTIFICADOR → clasifica docs, extrae datos, genera estado.md
+        → CALIFICADOR → evalúa requisitos, genera resultado_final.md
+          → PLANIFICADOR marca COMPLETADO en tracking.md
 """
 
 import json
@@ -97,10 +96,10 @@ class AgentOrchestrator:
         logger.info(f"tracking.md generado con {len(students)} alumnos")
 
     def _process_student(self, student_id: str) -> tuple:
-        """Procesa un alumno completo: IDENTIFICADOR → REVISORES → CALIFICADOR.
+        """Procesa un alumno completo: IDENTIFICADOR → CALIFICADOR.
 
         Returns:
-            (score_dict, rejection_dict) — uno de los dos es None.
+            (result_dict, rejection_dict) — uno de los dos es None.
         """
         logger.info(f"\n{'='*50}")
         logger.info(f"Procesando: {student_id}")
@@ -110,15 +109,12 @@ class AgentOrchestrator:
         if not estado:
             return (None, rejection)
 
-        # 2 — REVISORES (paralelo simulado)
-        self._revisores_run(student_id, estado)
-
-        # 3 — CALIFICADOR
-        score, rejection = self._calificador_run(student_id)
-        if score:
-            # 4 — Planificador: marca alumno COMPLETADO
+        # 2 — CALIFICADOR
+        result, rejection = self._calificador_run(student_id)
+        if result:
+            # 3 — Planificador: marca alumno COMPLETADO
             self._marcar_alumno_completado(student_id)
-            return (score, None)
+            return (result, None)
         else:
             return (None, rejection)
 
@@ -210,22 +206,6 @@ class AgentOrchestrator:
         for dtype, files in doc_types.items():
             lines.append(f"  <{dtype}>{files}</{dtype}>")
         lines.append("</archivos>")
-        lines.append("")
-
-        lines.append("<!-- SECCIÓN REVISOR 1 (Carta Aceptación + CV) - NO EDITAR OTROS REVISORES -->")
-        lines.append("<revisor_1></revisor_1>")
-        lines.append("")
-        lines.append("<!-- SECCIÓN REVISOR 2 (Expediente + Nota Media) - NO EDITAR OTROS REVISORES -->")
-        lines.append("<revisor_2></revisor_2>")
-        lines.append("")
-        lines.append("<!-- SECCIÓN REVISOR 3 (Solicitud) - NO EDITAR OTROS REVISORES -->")
-        lines.append("<revisor_3></revisor_3>")
-        lines.append("")
-        lines.append("<sincronizacion>")
-        lines.append("  <revisor_1>PENDIENTE</revisor_1>")
-        lines.append("  <revisor_2>PENDIENTE</revisor_2>")
-        lines.append("  <revisor_3>PENDIENTE</revisor_3>")
-        lines.append("</sincronizacion>")
 
         (TEMP_DIR / f"{student_id}_estado.md").write_text("\n".join(lines), encoding="utf-8")
         logger.info(f"  estado.md generado — {estado_alumno}")
@@ -245,93 +225,6 @@ class AgentOrchestrator:
             "classified": classified,
             "extracted": extracted,
         }, None)
-
-    def _revisores_run(self, student_id: str, estado: dict):
-        """Ejecuta los 3 revisores (paralelo simulado con skills)."""
-        estado_path = TEMP_DIR / f"{student_id}_estado.md"
-        if not estado_path.exists():
-            return
-
-        extracted = estado.get("extracted", {})
-        classified = estado.get("classified", {})
-
-        # Revisor 1: Carta Aceptación + CV
-        rev1 = self._revisor_ejecutar(
-            student_id, "revisor_carta_cv",
-            extracted.get("carta_aceptacion", {}),
-            extracted.get("cv", {}),
-        )
-        self._escribir_seccion_revisor(estado_path, "revisor_1", json.dumps(rev1, ensure_ascii=False))
-
-        # Revisor 2: Expediente + Nota Media
-        rev2 = self._revisor_ejecutar(
-            student_id, "revisor_expediente",
-            extracted.get("expediente_academico", {}),
-            extracted.get("nota_media", {}),
-        )
-        self._escribir_seccion_revisor(estado_path, "revisor_2", json.dumps(rev2, ensure_ascii=False))
-
-        # Revisor 3: Solicitud
-        rev3 = self._revisor_ejecutar(
-            student_id, "revisor_solicitud",
-            extracted.get("solicitud", {}),
-        )
-        self._escribir_seccion_revisor(estado_path, "revisor_3", json.dumps(rev3, ensure_ascii=False))
-
-        # Marcar sincronización
-        self._actualizar_sincronizacion(estado_path, {
-            "revisor_1": "COMPLETADO",
-            "revisor_2": "COMPLETADO",
-            "revisor_3": "COMPLETADO",
-        })
-        logger.info(f"  [REVISORES] Los 3 revisores completados para {student_id}")
-
-    def _revisor_ejecutar(self, student_id: str, revisor_type: str, *doc_entries) -> dict:
-        """Ejecuta un revisor vía LLM con su skill correspondiente."""
-        skill_path = SKILLS_DIR / f"{revisor_type}.md"
-        skill_content = ""
-        if skill_path.exists():
-            skill_content = skill_path.read_text(encoding="utf-8")
-
-        system_prompt = (
-            f"Eres un agente revisor especializado ({revisor_type}).\n\n"
-            f"{skill_content}\n\n"
-            "Debes evaluar los documentos proporcionados y devolver una puntuación (0-10) "
-            "y observaciones detalladas en formato JSON."
-        )
-
-        docs_text = json.dumps([e for e in doc_entries if e], indent=2, ensure_ascii=False)
-        user_prompt = f"Alumno: {student_id}\n\nDocumentos a revisar:\n{docs_text}"
-
-        try:
-            raw = self.llm._call(system_prompt, user_prompt)
-            return self.llm._parse_json(raw)
-        except Exception as e:
-            logger.error(f"  Error en revisor {revisor_type}: {e}")
-            return {"error": str(e), "puntuacion": 0}
-
-    def _escribir_seccion_revisor(self, estado_path: Path, seccion: str, contenido: str):
-        if not estado_path.exists():
-            return
-        content = estado_path.read_text(encoding="utf-8")
-        marker = f"<{seccion}>"
-        end_marker = f"</{seccion}>"
-        if marker in content:
-            start = content.find(marker) + len(marker)
-            end = content.find(end_marker)
-            if end > start:
-                content = content[:start] + contenido + content[end:]
-                estado_path.write_text(content, encoding="utf-8")
-
-    def _actualizar_sincronizacion(self, estado_path: Path, estados: dict):
-        if not estado_path.exists():
-            return
-        content = estado_path.read_text(encoding="utf-8")
-        for revisor, status in estados.items():
-            old = f"<{revisor}>PENDIENTE</{revisor}>"
-            new = f"<{revisor}>{status}</{revisor}>"
-            content = content.replace(old, new)
-        estado_path.write_text(content, encoding="utf-8")
 
     def _calificador_run(self, student_id: str) -> tuple:
         """Calificador: evalúa requisitos y genera resultado final.

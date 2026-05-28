@@ -63,9 +63,6 @@ graph TD
 sequenceDiagram
     participant P as Planificador
     participant I as Identificador
-    participant R1 as "Revisor 1 (Carta+CV)"
-    participant R2 as "Revisor 2 (Exp+Nota)"
-    participant R3 as "Revisor 3 (Solicitud)"
     participant C as Calificador
     participant Py as "Python (Validador+Evaluador)"
 
@@ -74,18 +71,9 @@ sequenceDiagram
     loop Por cada alumno (uno a uno)
         P->>I: Procesar alumno
         I->>I: Clasifica PDFs
-        I->>I: Extrae datos
-        I->>I: Genera estado.md
+        I->>I: Extrae datos con IA
+        I->>I: Genera estado.md + JSON
         I-->>P: estado.md listo
-
-        par Revisores en paralelo
-            P->>R1: Revisar Carta + CV
-            P->>R2: Revisar Expediente + Nota
-            P->>R3: Revisar Solicitud
-            R1-->>P: COMPLETADO
-            R2-->>P: COMPLETADO
-            R3-->>P: COMPLETADO
-        end
 
         P->>C: Evaluar alumno
         C->>Py: Validar requisitos (a-h)
@@ -134,28 +122,41 @@ EVALUADOR (Python) ──── Determina Apto/No apto
 EXPORT (Python) ─────── Genera Excel con checklist de requisitos
 ```
 
+## Evolución del Sistema (v1 → v2)
+
+### v1 (anterior) — Baremación numérica
+El sistema original asignaba **puntuaciones numéricas** (0-10) a cada documento y las ponderaba por pesos (nota media 40%, expediente 30%, CV 15%, carta 10%, solicitud 5%). Usaba 3 revisores IA para evaluar cualitativamente cada documento, seguidos de un calificador que consolidaba las notas. El resultado era un ranking ordenado por puntuación total.
+
+**Problemas detectados:**
+- Dependencia excesiva de la IA para decisiones subjetivas (puntuaciones de revisores)
+- 13 llamadas a la IA por alumno (clasificar + extraer + 3 revisores), muy lento
+- El baremo numérico no se correspondía con la regulación real de la UCO
+
+### v2 (actual) — Validación binaria de requisitos
+El sistema actual verifica **8 requisitos objetivos** (a-h) basados en el Reglamento de Prácticas Académicas Externas de la Universidad de Córdoba. La IA solo extrae datos estructurados; **Python evalúa cada condición** y el resultado es binario: **Apto** (cumple todos) o **No apto** (incumple alguno). Sin puntuaciones numéricas, sin revisores IA.
+
+**Ventajas:**
+- ~5 llamadas a la IA por alumno (solo clasificar + extraer)
+- Decisión 100% determinista en Python (misma entrada → mismo resultado siempre)
+- Alineado con la regulación real de la UCO
+- Sin riesgo de inconsistencia entre revisores
+
 ## Agentes del Sistema
 
 | Agente | Skill | Función |
 |---|---|---|
 | **Planificador** | `skills/planificador.md` | Genera tracking.md, orquesta el flujo alumno por alumno |
-| **Identificador** | `skills/identificador.md` | Clasifica PDFs por contenido, mapea documentos |
-| **Revisor 1** | `skills/revisor_carta_cv.md` | Evalúa carta de aceptación y CV |
-| **Revisor 2** | `skills/revisor_expediente.md` | Evalúa expediente académico y nota media |
-| **Revisor 3** | `skills/revisor_solicitud.md` | Evalúa solicitudes de admisión |
-| **Calificador** | `skills/calificador.md` | Consolida datos y determina Apto/No apto |
+| **Identificador** | `skills/identificador.md` | Clasifica PDFs por contenido y extrae datos estructurados |
+| **Calificador** | `skills/calificador.md` | Evalúa requisitos y determina Apto/No apto |
 
 ## Decisiones Python vs IA
 
 | Decisión | Responsable |
 |---|---|
-| Clasificar tipo de documento | IA |
-| Extraer datos (nombre, notas, etc.) | IA |
 | Extraer texto de PDFs (con OCR si es escaneado) | **Python** |
-| Extraer datos estructurados (nombre, universidad, créditos...) | IA |
 | Clasificar tipo de documento por contenido | IA |
+| Extraer datos estructurados (nombre, universidad, créditos...) | IA |
 | ¿Faltan documentos requeridos? | **Python** |
-| ¿La confianza es suficiente? | **Python** |
 | **Verificar requisitos de elegibilidad (a-h)** | **Python** |
 | **Decisión final (apto/no apto)** | **Python** |
 | Generación de Excel | **Python** |

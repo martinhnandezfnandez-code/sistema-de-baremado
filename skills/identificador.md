@@ -45,16 +45,6 @@ Eres un agente especializado en identificar y clasificar documentos académicos.
   <cv>curriculum.pdf</cv>
   <solicitud>solicitud1.pdf, solicitud2.pdf</solicitud>
 </archivos>
-
-<!-- SECCIÓN REVISOR 1 ... -->
-<!-- SECCIÓN REVISOR 2 ... -->
-<!-- SECCIÓN REVISOR 3 ... -->
-
-<sincronizacion>
-  <revisor_1>PENDIENTE</revisor_1>
-  <revisor_2>PENDIENTE</revisor_2>
-  <revisor_3>PENDIENTE</revisor_3>
-</sincronizacion>
 ```
 
 ## Criterios de Clasificación
