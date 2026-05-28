@@ -15,142 +15,64 @@
     ],
     "min_confidence": "MEDIA"
   },
-  "baremo": {
-    "nota_media": { "weight": 40, "max": 10 },
-    "expediente": { "weight": 30, "max": 10 },
-    "cv": { "weight": 15, "max": 10 },
-    "carta_aceptacion": { "weight": 10, "max": 10 },
-    "solicitud": { "weight": 5, "max": 10 }
-  },
-  "baremo_docs": {
-    "nota_media": {
-      "method": "numerical",
-      "field": "nota_media",
-      "scale_field": "escala",
-      "scales": { "10": 1.0, "4": 2.5, "100": 0.1 },
-      "ranges": [
-        { "min": 9.5, "score": 10 },
-        { "min": 9, "score": 9.5 },
-        { "min": 8, "score": 8.5 },
-        { "min": 7, "score": 7.5 },
-        { "min": 6, "score": 6.5 },
-        { "min": 5, "score": 5.5 },
-        { "min": 0, "score": 0 }
-      ]
+  "requisitos": {
+    "a_matriculado_uco": {
+      "activo": true,
+      "descripcion": "Estar matriculado en la Universidad de Córdoba o Centros adscritos",
+      "campos_busqueda": ["universidad", "institucion"],
+      "valores_validos": ["universidad de córdoba", "uco", "córdoba", "cordoba"]
     },
-    "expediente_academico": {
-      "method": "ratio",
-      "numerator": "asignaturas_aprobadas",
-      "denominator": "total_asignaturas",
-      "ranges": [
-        { "min_pct": 95, "score": 10 },
-        { "min_pct": 85, "score": 8.5 },
-        { "min_pct": 75, "score": 7 },
-        { "min_pct": 60, "score": 5.5 },
-        { "min_pct": 0, "score": 0 }
-      ]
+    "b_matricula_vigor": {
+      "activo": true,
+      "descripcion": "Disponer de matrícula académica en vigor y expediente académico abierto",
+      "campo_matricula": "matricula_vigor",
+      "campo_expediente": "expediente_abierto",
+      "valor_esperado": "sí"
     },
-    "cv": {
-      "method": "keyword",
-      "fields": {
-        "nivel_estudios": {
-          "weight": 4,
-          "keywords": {
-            "doctorado": 4, "phd": 4, "master": 3, "máster": 3,
-            "grado": 2, "licenciatura": 2, "ingeniería": 2, "ingenieria": 2,
-            "formacion profesional": 1.5, "formación profesional": 1.5, "fp": 1.5,
-            "bachillerato": 0.5, "secundaria": 0.5
-          },
-          "default": 0
-        },
-        "grupo_profesional": {
-          "weight": 3,
-          "keywords": {
-            "sanidad": 3, "salud": 3, "medicina": 3, "enfermer": 3,
-            "educación": 2.5, "educacion": 2.5, "docencia": 2.5, "profesor": 2.5,
-            "ingeniería": 2, "ingenieria": 2, "tecnología": 2, "tecnologia": 2, "informática": 2, "informatica": 2,
-            "administración": 1.5, "administracion": 1.5, "gestión": 1.5, "gestion": 1.5,
-            "comercial": 1, "ventas": 1
-          },
-          "default": 0.5
-        },
-        "experiencia": {
-          "weight": 3,
-          "ranges": [
-            { "min": 10, "score": 3 },
-            { "min": 5, "score": 2.5 },
-            { "min": 3, "score": 2 },
-            { "min": 1, "score": 1 },
-            { "min": 0, "score": 0.5 }
-          ]
-        }
-      }
+    "c_creditos_50": {
+      "activo": true,
+      "descripcion": "Haber superado el 50% de los créditos exigidos para la obtención del título",
+      "excepcion_titulaciones": ["master", "máster", "doctorado"],
+      "numerador": "creditos_superados",
+      "denominador": "total_creditos",
+      "min_ratio": 0.5
     },
-    "carta_aceptacion": {
-      "method": "keyword",
-      "fields": {
-        "tipo_institucion": {
-          "weight": 3,
-          "keywords": {
-            "universidad": 3, "facultad": 3, "escuela": 2,
-            "instituto": 1.5, "centro": 1, "academia": 0.5
-          },
-          "default": 1
-        },
-        "tipo_programa": {
-          "weight": 3,
-          "keywords": {
-            "doctorado": 3, "master": 3, "máster": 3, "posgrado": 2.5,
-            "grado": 2, "licenciatura": 2, "diplomatura": 1.5, "curso": 0.5
-          },
-          "default": 1
-        },
-        "duracion": {
-          "weight": 2,
-          "ranges": [
-            { "min_meses": 24, "score": 2 },
-            { "min_meses": 12, "score": 1.5 },
-            { "min_meses": 6, "score": 1 },
-            { "min_meses": 0, "score": 0.5 }
-          ]
-        },
-        "firmante": {
-          "weight": 2,
-          "keywords": {
-            "rector": 2, "decano": 2, "director": 1.5, "coordinador": 1.5,
-            "secretario": 1, "administrativo": 0.5
-          },
-          "default": 0.5
-        }
-      }
+    "d_certificado_delitos": {
+      "activo": true,
+      "descripcion": "Certificado negativo de delitos de naturaleza sexual vigente",
+      "campo_condicion": "interaccion_menores",
+      "campo_condicion_alt": "interaccion_discapacidad",
+      "campo_certificado": "certificado_delitos",
+      "valor_esperado": "sí"
     },
-    "solicitud": {
-      "method": "keyword",
-      "fields": {
-        "completitud": {
-          "weight": 2,
-          "keywords": {
-            "completa": 2, "firmada": 2, "completada": 1.5,
-            "incompleta": 0.5, "parcial": 0.5
-          },
-          "default": 1
-        },
-        "motivacion": {
-          "weight": 2,
-          "keywords": {
-            "alta": 2, "muy motivado": 2, "interesado": 1.5,
-            "media": 1, "baja": 0.5
-          },
-          "default": 1
-        },
-        "presentacion": {
-          "weight": 1,
-          "keywords": {
-            "carta": 1, "formulario": 0.8, "digital": 0.8, "físico": 0.5
-          },
-          "default": 0.5
-        }
-      }
+    "e_practicas_misma_entidad": {
+      "activo": true,
+      "descripcion": "No haber realizado prácticas en la misma entidad con duración igual o superior a la máxima establecida",
+      "campo_entidad": "practicas_previas_entidad",
+      "campo_duracion": "duracion_practicas_entidad_meses",
+      "max_duracion_meses": 12
+    },
+    "f_practicas_maximo_total": {
+      "activo": true,
+      "descripcion": "No haber realizado prácticas con duración igual o superior a la máxima establecida",
+      "campo_duracion_total": "duracion_practicas_total_meses",
+      "max_duracion_meses": 24
+    },
+    "g_movilidad": {
+      "activo": true,
+      "descripcion": "Estudiantes de movilidad pueden participar salvo incompatibilidad con otras bolsas o ayudas",
+      "campo_tipo": "tipo_estudiante",
+      "valor_movilidad": "movilidad",
+      "campo_incompatibilidad": "bolsa_ayuda_actual",
+      "valor_incompatible": "sí"
+    },
+    "h_bolsa_renuncia": {
+      "activo": true,
+      "descripcion": "No aceptar nueva práctica remunerada si implica renunciar a bolsa actual (salvo causa justificada)",
+      "campo_bolsa": "bolsa_ayuda_actual",
+      "campo_meses": "meses_incorporado",
+      "min_meses_incorporado": 1,
+      "valor_bolsa": "sí"
     }
   }
 }

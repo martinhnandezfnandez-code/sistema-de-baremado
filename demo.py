@@ -6,8 +6,8 @@ Genera documentos PDF de ejemplo, ejecuta el pipeline completo
 y genera el Excel con resultados.
 
 Uso:
-    python demo.py                  # Pipeline completo (con LMStudio si está disponible)
-    python demo.py --mock           # Usa datos simulados (sin LMStudio)
+    python demo.py                  # Pipeline completo (con Ollama si está disponible)
+    python demo.py --mock           # Usa datos simulados (sin Ollama)
 """
 
 import argparse
@@ -41,7 +41,7 @@ def create_sample_pdfs(base_dir: str = "input"):
         "alumno_001": {
             "carta_aceptacion.pdf": (
                 "CARTA DE ACEPTACIÓN\n\n"
-                "Universidad Politécnica de Madrid\n"
+                "Universidad de Córdoba\n"
                 "Por la presente, aceptamos al estudiante Juan García López\n"
                 "en el programa de Máster en Inteligencia Artificial.\n"
                 "Fecha de inicio: Septiembre 2025\n"
@@ -53,17 +53,22 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "EXPEDIENTE ACADÉMICO\n\n"
                 "Estudiante: Juan García López\n"
                 "Carrera: Ingeniería Informática\n"
-                "Institución: Universidad Politécnica de Madrid\n"
+                "Institución: Universidad de Córdoba\n"
                 "Año inicio: 2020  Año fin: 2024\n"
                 "Total asignaturas: 40\n"
                 "Asignaturas cursadas: 40\n"
-                "Asignaturas aprobadas: 38"
+                "Asignaturas aprobadas: 38\n"
+                "Total créditos: 240\n"
+                "Créditos superados: 228\n"
+                "Tipo titulación: grado\n"
+                "Matrícula en vigor: sí\n"
+                "Expediente abierto: sí"
             ),
             "nota_media.pdf": (
                 "CERTIFICADO DE NOTA MEDIA\n\n"
                 "Estudiante: Juan García López\n"
                 "DNI: 12345678A\n"
-                "Institución: Universidad Politécnica de Madrid\n"
+                "Institución: Universidad de Córdoba\n"
                 "Nota media: 8.7\n"
                 "Escala: 0-10"
             ),
@@ -73,7 +78,7 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "Email: juan.garcia@email.com\n"
                 "Teléfono: +34 612 345 678\n\n"
                 "FORMACIÓN:\n"
-                "- Grado en Ingeniería Informática, UPM (2020-2024)\n\n"
+                "- Grado en Ingeniería Informática, UCO (2020-2024)\n\n"
                 "EXPERIENCIA:\n"
                 "- Desarrollador Junior en TechCorp (2024-presente) - 1 año\n"
                 "- Prácticas en DataSys (2023) - 6 meses\n\n"
@@ -90,7 +95,14 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "Nombre: Juan García López\n"
                 "DNI: 12345678A\n"
                 "Email: juan.garcia@email.com\n"
-                "Teléfono: +34 612 345 678\n\n"
+                "Teléfono: +34 612 345 678\n"
+                "Universidad: Universidad de Córdoba\n"
+                "Tipo estudiante: normal\n"
+                "Tipo titulación: grado\n"
+                "Interacción con menores: no\n"
+                "Certificado delitos: no\n"
+                "Prácticas previas entidad: ninguna\n"
+                "Bolsa ayuda actual: no\n\n"
                 "Motivación: Deseo ampliar mis conocimientos en IA\n"
                 "para aplicarlos en el sector de la salud."
             ),
@@ -114,7 +126,11 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "Year start: 2021  Year end: 2025\n"
                 "Total courses: 36\n"
                 "Courses taken: 36\n"
-                "Courses passed: 34"
+                "Courses passed: 34\n"
+                "Total credits: 180\n"
+                "Credits passed: 170\n"
+                "Enrollment active: yes\n"
+                "Record open: yes"
             ),
             "gpa.pdf": (
                 "GRADE POINT AVERAGE\n\n"
@@ -144,7 +160,14 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "Program: Master of Science in Data Science\n"
                 "Name: María Pérez Sánchez\n"
                 "Email: maria.perez@email.com\n"
-                "Phone: +34 698 765 432\n\n"
+                "Phone: +34 698 765 432\n"
+                "University: MIT\n"
+                "Student type: normal\n"
+                "Degree type: grado\n"
+                "Interaction with minors: no\n"
+                "Background check: no\n"
+                "Previous internships: none\n"
+                "Current financial aid: no\n\n"
                 "Statement of Purpose: I aim to leverage data science\n"
                 "to solve climate change challenges."
             ),
@@ -152,7 +175,7 @@ def create_sample_pdfs(base_dir: str = "input"):
         "alumno_003": {
             "aceptacion.pdf": (
                 "ACEPTACIÓN DE PLAZA\n\n"
-                "Universidad de Barcelona\n"
+                "Universidad de Córdoba\n"
                 "Se acepta a Carlos Martínez Ruiz\n"
                 "en el Máster en Ciencia de Datos.\n"
                 "Curso 2025-2026\n\n"
@@ -163,10 +186,15 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "EXPEDIENTE ACADÉMICO\n\n"
                 "Alumno: Carlos Martínez Ruiz\n"
                 "Carrera: Matemáticas\n"
-                "Universidad: Universidad de Barcelona\n"
+                "Universidad: Universidad de Córdoba\n"
                 "Asignaturas totales: 36\n"
                 "Aprobadas: 28\n"
-                "Cursadas: 36"
+                "Cursadas: 36\n"
+                "Total créditos: 240\n"
+                "Créditos superados: 160\n"
+                "Tipo titulación: grado\n"
+                "Matrícula en vigor: sí\n"
+                "Expediente abierto: sí"
             ),
             "nota_media.pdf": (
                 "NOTA MEDIA\n\n"
@@ -179,7 +207,7 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "Carlos Martínez Ruiz\n"
                 "Email: carlos.martinez@email.com\n\n"
                 "EDUCACIÓN:\n"
-                "- Grado en Matemáticas, UB (2019-2023)\n\n"
+                "- Grado en Matemáticas, UCO (2019-2023)\n\n"
                 "IDIOMAS:\n"
                 "- Español (nativo)\n"
                 "- Inglés (B1)\n\n"
@@ -190,7 +218,14 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "SOLICITUD\n\n"
                 "Máster en Ciencia de Datos\n"
                 "Carlos Martínez Ruiz\n"
-                "carlos.martinez@email.com"
+                "carlos.martinez@email.com\n"
+                "Universidad: Universidad de Córdoba\n"
+                "Tipo estudiante: normal\n"
+                "Tipo titulación: grado\n"
+                "Interacción con menores: sí\n"
+                "Certificado delitos: sí\n"
+                "Prácticas previas entidad: ninguna\n"
+                "Bolsa ayuda actual: no"
             ),
         },
         "alumno_004": {
@@ -206,7 +241,12 @@ def create_sample_pdfs(base_dir: str = "input"):
                 "HISTORIAL ACADÉMICO\n\n"
                 "Ana López Fernández\n"
                 "Ingeniería Informática - Universidad de Deusto\n"
-                "Asignaturas: 42 total, 39 aprobadas"
+                "Asignaturas: 42 total, 39 aprobadas\n"
+                "Total créditos: 240\n"
+                "Créditos superados: 230\n"
+                "Tipo titulación: grado\n"
+                "Matrícula en vigor: sí\n"
+                "Expediente abierto: sí"
             ),
             "cv.pdf": (
                 "CURRICULUM VITAE\n\n"
@@ -219,7 +259,13 @@ def create_sample_pdfs(base_dir: str = "input"):
             "solicitud.pdf": (
                 "SOLICITUD DE ADMISIÓN\n\n"
                 "Ana López Fernández\n"
-                "Máster en Ciberseguridad"
+                "Máster en Ciberseguridad\n"
+                "Universidad: Universidad de Deusto\n"
+                "Tipo estudiante: normal\n"
+                "Tipo titulación: grado\n"
+                "Interacción con menores: no\n"
+                "Prácticas previas entidad: ninguna\n"
+                "Bolsa ayuda actual: no"
             ),
         },
     }
@@ -246,31 +292,31 @@ def _create_sample_txt(base_dir: str):
     """Fallback: create text files when reportlab is not available."""
     samples = {
         "alumno_001": {
-            "carta_aceptacion.txt": "CARTA DE ACEPTACION\nUniversidad Politecnica de Madrid\nJuan Garcia Lopez\nMaster en IA",
-            "expediente_academico.txt": "EXPEDIENTE ACADEMICO\nJuan Garcia Lopez\n40 asignaturas, 38 aprobadas",
+            "carta_aceptacion.txt": "CARTA DE ACEPTACION\nUniversidad de Córdoba\nJuan Garcia Lopez\nMaster en IA",
+            "expediente_academico.txt": "EXPEDIENTE ACADEMICO\nJuan Garcia Lopez\nUCO\n40 asignaturas, 38 aprobadas\n240 creditos, 228 superados\ntipo: grado\nmatricula: si\nexpediente: si",
             "nota_media.txt": "NOTA MEDIA\nJuan Garcia Lopez\nNota media: 8.7/10",
             "cv.txt": "CV\nJuan Garcia Lopez\n1 ano experiencia\nIngles C1, Frances B1\nPython, ML, SQL",
-            "solicitud.txt": "SOLICITUD\nJuan Garcia Lopez\nMaster en Inteligencia Artificial",
+            "solicitud.txt": "SOLICITUD\nJuan Garcia Lopez\nMaster en IA\nUniversidad: Universidad de Córdoba\ntipo_estudiante: normal\ntipo_titulacion: grado\ninteraccion_menores: no\npracticas_previas: ninguna\nbolsa_actual: no",
         },
         "alumno_002": {
             "carta_aceptacion.txt": "LETTER OF ACCEPTANCE\nMIT\nMaria Perez Sanchez\nMSc Data Science",
-            "expediente_academico.txt": "ACADEMIC TRANSCRIPT\nMaria Perez Sanchez\n36 courses, 34 passed",
+            "expediente_academico.txt": "ACADEMIC TRANSCRIPT\nMaria Perez Sanchez\nMIT\n36 courses, 34 passed\n180 credits, 170 passed\ntype: grado\nenrollment: yes\nrecord: open",
             "nota_media.txt": "GPA\nMaria Perez Sanchez\nGPA: 3.8/4.0",
             "cv.txt": "CV\nMaria Perez Sanchez\nGoogle intern, MIT research\nPython, R, TensorFlow\nEnglish native, German B2",
-            "solicitud.txt": "APPLICATION\nMaria Perez Sanchez\nMSc Data Science",
+            "solicitud.txt": "APPLICATION\nMaria Perez Sanchez\nMSc Data Science\nUniversity: MIT\ntipo_estudiante: normal\ntipo_titulacion: grado\ninteraccion_menores: no\npracticas_previas: ninguna\nbolsa_actual: no",
         },
         "alumno_003": {
-            "carta_aceptacion.txt": "ACEPTACION DE PLAZA\nUniversidad de Barcelona\nCarlos Martinez Ruiz\nMaster en Ciencia de Datos",
-            "expediente_academico.txt": "EXPEDIENTE ACADEMICO\nCarlos Martinez Ruiz\n36 asignaturas, 28 aprobadas",
+            "carta_aceptacion.txt": "ACEPTACION DE PLAZA\nUniversidad de Córdoba\nCarlos Martinez Ruiz\nMaster en Ciencia de Datos",
+            "expediente_academico.txt": "EXPEDIENTE ACADEMICO\nCarlos Martinez Ruiz\nUCO\n36 asignaturas, 28 aprobadas\n240 creditos, 160 superados\ntipo: grado\nmatricula: si\nexpediente: si",
             "nota_media.txt": "NOTA MEDIA\nCarlos Martinez Ruiz\nNota media: 6.5/10",
             "cv.txt": "CV\nCarlos Martinez Ruiz\nMatematicas\nIngles B1\nEstadistica, R",
-            "solicitud.txt": "SOLICITUD\nCarlos Martinez Ruiz\nMaster en Ciencia de Datos",
+            "solicitud.txt": "SOLICITUD\nCarlos Martinez Ruiz\nMaster en Ciencia de Datos\nUniversidad: Universidad de Córdoba\ntipo_estudiante: normal\ntipo_titulacion: grado\ninteraccion_menores: si\ncertificado_delitos: si\npracticas_previas: ninguna\nbolsa_actual: no",
         },
         "alumno_004": {
             "carta_aceptacion.txt": "CARTA DE ACEPTACION\nUniversidad de Deusto\nAna Lopez Fernandez\nMaster en Ciberseguridad",
-            "expediente_academico.txt": "HISTORIAL ACADEMICO\nAna Lopez Fernandez\n42 asignaturas, 39 aprobadas",
+            "expediente_academico.txt": "HISTORIAL ACADEMICO\nAna Lopez Fernandez\nUniversidad de Deusto\n42 asignaturas, 39 aprobadas\n240 creditos, 230 superados\ntipo: grado\nmatricula: si\nexpediente: si",
             "cv.txt": "CV\nAna Lopez Fernandez\n2 anos ciberseguridad\nIngles C1\nPython, redes, criptografia",
-            "solicitud.txt": "SOLICITUD\nAna Lopez Fernandez\nMaster en Ciberseguridad",
+            "solicitud.txt": "SOLICITUD\nAna Lopez Fernandez\nMaster en Ciberseguridad\nUniversidad: Universidad de Deusto\ntipo_estudiante: normal\ntipo_titulacion: grado\ninteraccion_menores: no\npracticas_previas: ninguna\nbolsa_actual: no",
         },
     }
 
@@ -324,45 +370,46 @@ def run_demo(mock: bool = False):
 
 def _run_mock_pipeline(students: list):
     """Mock pipeline that generates results without LLM."""
-    from scorer import Scorer, StudentScore
-    from validator import Validator, ValidationResult
+    from validator import Validator
+    from scorer import Evaluator
     from export import ExcelExporter
-
-    # Build mock validation results
-    mock_data = {
-        "alumno_001": {
-            "nota_media": {"nota_media": 8.7, "escala": "10"},
-            "expediente_academico": {"total_asignaturas": 40, "asignaturas_aprobadas": 38},
-            "cv": {"anos_experiencia": 1, "idiomas": ["Inglés", "Francés"], "habilidades_clave": ["Python", "ML", "SQL"], "nivel_estudios": "grado", "grupo_profesional": "ingenieria"},
-            "carta_aceptacion": {"tipo_institucion": "universidad", "tipo_programa": "master", "duracion_meses": 24, "cargo_firmante": "rector"},
-            "solicitud": {"completitud": "completa", "motivacion": "alta", "presentacion": "digital"},
-        },
-        "alumno_002": {
-            "nota_media": {"nota_media": 3.8, "escala": "4.0"},
-            "expediente_academico": {"total_asignaturas": 36, "asignaturas_aprobadas": 34},
-            "cv": {"anos_experiencia": 0.5, "idiomas": ["Español", "Inglés", "Alemán"], "habilidades_clave": ["Python", "R", "TensorFlow", "PyTorch", "SQL", "Spark", "Docker"], "nivel_estudios": "master", "grupo_profesional": "tecnologia"},
-            "carta_aceptacion": {"tipo_institucion": "facultad", "tipo_programa": "grado", "duracion_meses": 48, "cargo_firmante": "decano"},
-            "solicitud": {"completitud": "firmada", "motivacion": "media", "presentacion": "formulario"},
-        },
-        "alumno_003": {
-            "nota_media": {"nota_media": 6.5, "escala": "10"},
-            "expediente_academico": {"total_asignaturas": 36, "asignaturas_aprobadas": 28},
-            "cv": {"anos_experiencia": 0, "idiomas": ["Inglés"], "habilidades_clave": ["Estadística", "R"], "nivel_estudios": "doctorado", "grupo_profesional": "sanidad"},
-            "carta_aceptacion": {"tipo_institucion": "instituto", "tipo_programa": "curso", "duracion_meses": 6, "cargo_firmante": "coordinador"},
-            "solicitud": {"completitud": "parcial", "motivacion": "baja", "presentacion": "físico"},
-        },
-    }
 
     import json as _json
     _cfg = _json.loads(Path("config.json").read_text(encoding="utf-8"))
-    scorer = Scorer(baremo=_cfg.get("baremo"), baremo_docs=_cfg.get("baremo_docs"))
-    validator = Validator()
-    active_scores = []
+    config_req = _cfg.get("requisitos", {})
+
+    # Build mock extracted data for each student
+    mock_extracted = {
+        "alumno_001": {
+            "solicitud": {"datos": {"universidad": "Universidad de Córdoba", "tipo_estudiante": "normal", "tipo_titulacion": "grado", "interaccion_menores": "no", "interaccion_discapacidad": "no", "certificado_delitos": "no", "practicas_previas_entidad": "ninguna", "duracion_practicas_entidad_meses": 0, "duracion_practicas_total_meses": 0, "bolsa_ayuda_actual": "no", "meses_incorporado": 0}},
+            "expediente_academico": {"datos": {"total_creditos": 240, "creditos_superados": 228, "tipo_titulacion": "grado", "matricula_vigor": "sí", "expediente_abierto": "sí", "institucion": "Universidad de Córdoba"}},
+            "nota_media": {"datos": {"nota_media": 8.7, "escala": "10"}},
+            "cv": {"datos": {"nivel_estudios": "grado", "grupo_profesional": "ingenieria", "anos_experiencia": 1}},
+            "carta_aceptacion": {"datos": {"institucion": "Universidad de Córdoba", "tipo_institucion": "universidad", "tipo_programa": "master"}},
+        },
+        "alumno_002": {
+            "solicitud": {"datos": {"universidad": "MIT", "tipo_estudiante": "normal", "tipo_titulacion": "grado", "interaccion_menores": "no", "interaccion_discapacidad": "no", "certificado_delitos": "no", "practicas_previas_entidad": "ninguna", "duracion_practicas_entidad_meses": 0, "duracion_practicas_total_meses": 0, "bolsa_ayuda_actual": "no", "meses_incorporado": 0}},
+            "expediente_academico": {"datos": {"total_creditos": 180, "creditos_superados": 170, "tipo_titulacion": "grado", "matricula_vigor": "sí", "expediente_abierto": "sí", "institucion": "MIT"}},
+            "nota_media": {"datos": {"nota_media": 3.8, "escala": "4.0"}},
+            "cv": {"datos": {"nivel_estudios": "master", "grupo_profesional": "tecnologia", "anos_experiencia": 0.5}},
+            "carta_aceptacion": {"datos": {"institucion": "MIT", "tipo_institucion": "facultad", "tipo_programa": "grado"}},
+        },
+        "alumno_003": {
+            "solicitud": {"datos": {"universidad": "Universidad de Córdoba", "tipo_estudiante": "normal", "tipo_titulacion": "grado", "interaccion_menores": "sí", "interaccion_discapacidad": "no", "certificado_delitos": "sí", "practicas_previas_entidad": "ninguna", "duracion_practicas_entidad_meses": 0, "duracion_practicas_total_meses": 0, "bolsa_ayuda_actual": "no", "meses_incorporado": 0}},
+            "expediente_academico": {"datos": {"total_creditos": 240, "creditos_superados": 160, "tipo_titulacion": "grado", "matricula_vigor": "sí", "expediente_abierto": "sí", "institucion": "Universidad de Córdoba"}},
+            "nota_media": {"datos": {"nota_media": 6.5, "escala": "10"}},
+            "cv": {"datos": {"nivel_estudios": "doctorado", "grupo_profesional": "sanidad", "anos_experiencia": 0}},
+            "carta_aceptacion": {"datos": {"institucion": "Universidad de Córdoba", "tipo_institucion": "instituto", "tipo_programa": "curso"}},
+        },
+    }
+
+    validator = Validator(config_requisitos=config_req)
+    evaluator = Evaluator()
+    results = []
     rejected = []
 
     for sid in students:
-        datos = mock_data.get(sid, {})
-        # Check if alumno_004 (incomplete - no nota_media)
+        datos = mock_extracted.get(sid, {})
         if sid == "alumno_004":
             rejected.append({
                 "student_id": sid,
@@ -374,11 +421,14 @@ def _run_mock_pipeline(students: list):
             logger.info(f"  {sid}: Descartado — falta nota_media")
             continue
 
-        score = scorer.score_student(sid, datos)
-        active_scores.append(score.to_dict())
+        validation = validator.validate(sid, datos)
+        result = evaluator.evaluate(validation)
+        results.append(result.to_dict())
 
     # Rank and export
-    ranked = sorted(active_scores, key=lambda s: s["puntuacion_total"], reverse=True)
+    aptos = [s for s in results if s.get("apto")]
+    no_aptos = [s for s in results if not s.get("apto")]
+    ranked = aptos + no_aptos
     for i, s in enumerate(ranked, 1):
         s["orden"] = i
 
@@ -386,11 +436,16 @@ def _run_mock_pipeline(students: list):
     path = exporter.export_results(ranked, rejected)
 
     # Show results
-    logger.info("\nRanking:")
-    logger.info(f"{'#':>4} {'Alumno':<20} {'Puntuación':>10}")
+    logger.info("\nResultados:")
+    logger.info(f"{'#':>4} {'Alumno':<20} {'Estado':>10}")
     logger.info("-" * 36)
     for s in ranked:
-        logger.info(f"{s['orden']:>4} {s['student_id']:<20} {s['puntuacion_total']:>8.2f}")
+        logger.info(f"{s['orden']:>4} {s['student_id']:<20} {s['estado']:>10}")
+
+    if no_aptos:
+        logger.info(f"\nNo aptos ({len(no_aptos)}):")
+        for s in no_aptos:
+            logger.info(f"  - {s['student_id']}: {s['descripcion']}")
 
     if rejected:
         logger.info(f"\nDescartados ({len(rejected)}):")

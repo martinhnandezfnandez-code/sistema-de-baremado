@@ -48,12 +48,12 @@ def get_student_folders(input_dir: str = "input") -> list[str]:
 
 
 def run_pipeline_mode(config: dict):
-    """Pipeline directo: clasifica, extrae, valida, puntúa, exporta."""
+    """Pipeline directo: clasifica, extrae, valida requisitos, evalúa y exporta."""
     from llm_client import LLMClient
     from classifier import Classifier
     from extractor import Extractor
     from validator import Validator
-    from scorer import Scorer
+    from scorer import Evaluator
     from export import ExcelExporter
 
     from pdf_utils import extract_texts_from_student
@@ -61,12 +61,12 @@ def run_pipeline_mode(config: dict):
     llm = LLMClient()
     classifier = Classifier(llm)
     extractor = Extractor(llm)
-    validator = Validator(min_confidence=config["pipeline"]["min_confidence"])
-    scorer = Scorer(baremo=config.get("baremo"), baremo_docs=config.get("baremo_docs"))
+    validator = Validator(config_requisitos=config.get("requisitos", {}))
+    evaluator = Evaluator()
     exporter = ExcelExporter()
 
     students = get_student_folders()
-    active_scores = []
+    results = []
     rejected = []
 
     for sid in students:
@@ -97,36 +97,31 @@ def run_pipeline_mode(config: dict):
         with open(json_dir / f"{sid}.json", "w", encoding="utf-8") as f:
             json.dump(extracted, f, indent=2, ensure_ascii=False)
 
-        # 4 — Validar
-        logger.info("  Validando requisitos...")
+        # 4 — Validar requisitos
+        logger.info("  Validando requisitos de elegibilidad...")
         validation = validator.validate(sid, extracted)
         logger.info(f"  Estado: {validation.estado} — {validation.descripcion}")
 
-        if validation.estado == "Descartado":
-            rejected.append(validation.to_dict())
-            continue
-
-        # 5 — Puntuar
-        logger.info("  Calculando puntuación...")
-        score = scorer.score_student(sid, validation.datos)
-        active_scores.append(score.to_dict())
+        # 5 — Evaluar (apto/no apto)
+        logger.info("  Evaluando resultado...")
+        result = evaluator.evaluate(validation)
+        results.append(result.to_dict())
 
     # 6 — Ranking & Export
-    if active_scores:
-        ranked = scorer.rank_students(
-            [type("_", (), {"puntuacion_total": s["puntuacion_total"], "to_dict": lambda self: self._d}) for s in active_scores]
-        )
-        # Rebuild ranked dicts
-        ranked_dicts = sorted(active_scores, key=lambda s: s["puntuacion_total"], reverse=True)
-        for i, s in enumerate(ranked_dicts, 1):
+    if results:
+        aptos = [s for s in results if s.get("apto")]
+        no_aptos = [s for s in results if not s.get("apto")]
+        ranked = aptos + no_aptos
+        for i, s in enumerate(ranked, 1):
             s["orden"] = i
 
-        path = exporter.export_results(ranked_dicts, rejected)
+        path = exporter.export_results(ranked, rejected)
         logger.info(f"\nExcel generado: {path}")
     else:
-        logger.warning("No hay alumnos activos para puntuar")
+        logger.warning("No hay alumnos para evaluar")
 
-    logger.info(f"\nResumen: {len(active_scores)} admitidos, {len(rejected)} descartados")
+    aptos_count = sum(1 for r in results if r.get("apto"))
+    logger.info(f"\nResumen: {aptos_count} aptos, {len(results) - aptos_count} no aptos, {len(rejected)} descartados")
 
 
 def run_agent_mode(config: dict):

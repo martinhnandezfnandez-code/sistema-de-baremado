@@ -2,13 +2,13 @@
 
 # Sistema de Baremado
 
-Sistema multi-agente para clasificación automática de documentos académicos, extracción de datos estructurados y generación de baremos.
+Sistema multi-agente para clasificación automática de documentos académicos, extracción de datos estructurados y verificación de requisitos de elegibilidad para prácticas académicas externas de la Universidad de Córdoba.
 
 > **Soporte OCR**: los PDFs escaneados (imágenes) se procesan automáticamente mediante Tesseract OCR cuando la extracción de texto directa no obtiene resultados.
 
 ## Principio Clave
 
-> **La IA NO decide admitidos/excluidos.**  
+> **La IA NO decide aptos/no aptos.**  
 > La IA solo convierte documentos humanos en datos estructurados.  
 > **Python toma las decisiones.**
 
@@ -34,8 +34,8 @@ Sistema multi-agente para clasificación automática de documentos académicos, 
 ├── classifier.py             # Clasificador de documentos por contenido
 ├── extractor.py              # Extractor de datos estructurados
 ├── pdf_utils.py              # Utilidades de lectura PDF
-├── validator.py              # Validador de requisitos (PYTHON)
-├── scorer.py                 # Calculador de puntuaciones (PYTHON)
+├── validator.py              # Validador de requisitos de elegibilidad (PYTHON)
+├── scorer.py                 # Evaluador binario: Apto/No apto (PYTHON)
 ├── export.py                 # Generador de Excel (PYTHON)
 ├── main.py                   # Orquestador principal
 ├── demo.py                   # Demo con datos de ejemplo
@@ -51,7 +51,7 @@ graph TD
     D[Moderador / IA] -->|Clasifica documentos| B
     D -->|Extrae datos| B
     D -->|Evalúa documentos| B
-    B -->|Genera| E[Excel con baremo]
+    B -->|Genera| E[Excel con resultado apto/no apto]
     B -->|Genera| F[JSON estructurado]
     B -->|Mueve a| G[Carpeta Descartados]
     C -->|Aprueba/rechaza| G
@@ -67,7 +67,7 @@ sequenceDiagram
     participant R2 as "Revisor 2 (Exp+Nota)"
     participant R3 as "Revisor 3 (Solicitud)"
     participant C as Calificador
-    participant Py as "Python (Validador+Scorer)"
+    participant Py as "Python (Validador+Evaluador)"
 
     P->>P: Genera tracking.md (todos los alumnos)
 
@@ -87,12 +87,12 @@ sequenceDiagram
             R3-->>P: COMPLETADO
         end
 
-        P->>C: Calificar alumno
-        C->>Py: Validar requisitos
+        P->>C: Evaluar alumno
+        C->>Py: Validar requisitos (a-h)
         Py-->>C: Resultado validación
-        C->>Py: Calcular puntuación
-        Py-->>C: Puntuación
-        C-->>P: baremo_final.md
+        C->>Py: Evaluar apto/no apto
+        Py-->>C: Apto/No apto
+        C-->>P: resultado_final.md
 
         P->>P: Marcar COMPLETADO en tracking.md
     end
@@ -117,17 +117,21 @@ IDENTIFICADOR (IA) ──── Clasifica documentos por contenido
 EXTRACTOR (IA) ──────── Extrae datos estructurados (JSON)
     │
     ▼
-VALIDATOR (Python) ──── Verifica que todos los docs requeridos existen
-    │                    Si faltan → Descartado
+VALIDATOR (Python) ──── Verifica los 8 requisitos de elegibilidad (a-h)
+    │                    • a) Matriculado en UCO o centros adscritos
+    │                    • b) Matrícula en vigor y expediente abierto
+    │                    • c) 50% créditos superados (Grado)
+    │                    • d) Certificado delitos sexuales (si aplica)
+    │                    • e) Duración prácticas misma entidad ≤ máxima
+    │                    • f) Duración total prácticas ≤ máxima
+    │                    • g) Movilidad sin incompatibilidad
+    │                    • h) Bolsa actual sin renuncia obligada
     ▼
-SCORER (Python) ─────── Aplica baremo configurable
-    │                    • Nota media 40% (rangos)
-    │                    • Expediente 30% (% aprobados)
-    │                    • CV 15% (keywords: estudios, grupo, exp.)
-    │                    • Carta 10% (keywords: institución, programa...)
-    │                    • Solicitud 5% (keywords: completitud, motivación)
+EVALUADOR (Python) ──── Determina Apto/No apto
+    │                    • Apto = cumple TODOS los requisitos
+    │                    • No apto = no cumple alguno
     ▼
-EXPORT (Python) ─────── Genera Excel con ranking
+EXPORT (Python) ─────── Genera Excel con checklist de requisitos
 ```
 
 ## Agentes del Sistema
@@ -139,23 +143,22 @@ EXPORT (Python) ─────── Genera Excel con ranking
 | **Revisor 1** | `skills/revisor_carta_cv.md` | Evalúa carta de aceptación y CV |
 | **Revisor 2** | `skills/revisor_expediente.md` | Evalúa expediente académico y nota media |
 | **Revisor 3** | `skills/revisor_solicitud.md` | Evalúa solicitudes de admisión |
-| **Calificador** | `skills/calificador.md` | Consolida puntuaciones y genera baremo |
+| **Calificador** | `skills/calificador.md` | Consolida datos y determina Apto/No apto |
 
 ## Decisiones Python vs IA
 
 | Decisión | Responsable |
-|---|---|---|
+|---|---|
 | Clasificar tipo de documento | IA |
 | Extraer datos (nombre, notas, etc.) | IA |
 | Extraer texto de PDFs (con OCR si es escaneado) | **Python** |
-| Extraer datos estructurados (nombre, estudios, keywords...) | IA |
+| Extraer datos estructurados (nombre, universidad, créditos...) | IA |
 | Clasificar tipo de documento por contenido | IA |
 | ¿Faltan documentos requeridos? | **Python** |
 | ¿La confianza es suficiente? | **Python** |
-| **Aplicar baremo por keywords y rangos** | **Python** |
-| Ranking y ordenación | **Python** |
+| **Verificar requisitos de elegibilidad (a-h)** | **Python** |
+| **Decisión final (apto/no apto)** | **Python** |
 | Generación de Excel | **Python** |
-| Decisión final (admitido/excluido) | **Python** |
 
 ## Instalación
 
@@ -191,104 +194,61 @@ Tesseract OCR y Poppler son **requisitos obligatorios**. El programa los necesit
 3. Ollama sirve automáticamente en `http://localhost:11434/v1` con API compatible con OpenAI
 4. Ajustar `config.json` si es necesario (modelo, temperatura, etc.)
 
-## Baremo — Todos los documentos configurables
+## Requisitos de Elegibilidad (a-h)
 
-| Documento | Peso | Método |
+El sistema verifica 8 requisitos basados en el Reglamento de Prácticas Académicas Externas de la Universidad de Córdoba:
+
+| Clave | Requisito | ¿Qué comprueba? |
 |---|---|---|
-| Nota media | **40%** | Numérico con rangos |
-| Expediente académico | **30%** | % aprobados con rangos |
-| CV | **15%** | Keywords (estudios, grupo, experiencia) |
-| Carta de aceptación | **10%** | Keywords (institución, programa, duración, firmante) |
-| Solicitud | **5%** | Keywords (completitud, motivación) |
-| **Total** | **100%** | |
+| **a** | Matriculado en UCO | El estudiante pertenece a la Universidad de Córdoba o centros adscritos |
+| **b** | Matrícula en vigor | Tiene matrícula activa y expediente académico abierto |
+| **c** | 50% créditos (Grado) | Ha superado al menos la mitad de los créditos de su titulación (solo Grado) |
+| **d** | Certificado delitos | Si la práctica implica menores/discapacidad, debe tener certificado negativo |
+| **e** | Prácticas misma entidad | No ha superado la duración máxima en una misma entidad |
+| **f** | Prácticas total máximo | No ha superado la duración máxima total de prácticas |
+| **g** | Movilidad | Estudiantes de movilidad pueden participar si no hay incompatibilidad |
+| **h** | Bolsa/ayuda | No aceptar nueva práctica si implica renunciar a bolsa actual (salvo causa justificada) |
 
-### ✅ Cómo cambiar el baremo (guía paso a paso)
+**Resultado**: Apto (cumple todos) o No apto (incumple alguno). Sistema binario, sin puntuación numérica.
 
-Todo se configura en `config.json` → `baremo_docs`. Ahí tienes una entrada por cada tipo de documento. No necesitas tocar Python.
+### ✅ Cómo cambiar los requisitos (guía paso a paso)
 
-#### Para documentos numéricos (`nota_media` y `expediente`)
+Todo se configura en `config.json` → `requisitos`. Cada entrada tiene:
 
-Los rangos definen qué puntuación se asigna según el valor:
+- `activo`: `true`/`false` para activar/desactivar el requisito
+- `descripcion`: Texto descriptivo
+- Campos de configuración específicos de cada requisito
 
+**Ejemplo: cambiar universidades válidas:**
 ```json
-"nota_media": {
-  "method": "numerical",
-  "field": "nota_media",
-  "scale_field": "escala",
-  "scales": { "10": 1.0, "4": 2.5, "100": 0.1 },
-  "ranges": [
-    { "min": 9.5, "score": 10 },
-    { "min": 9,   "score": 9.5 },
-    { "min": 8,   "score": 8.5 },
-    { "min": 0,   "score": 0 }
-  ]
+"a_matriculado_uco": {
+  "activo": true,
+  "valores_validos": ["universidad de córdoba", "uco", "córdoba", "cordoba"]
 }
 ```
 
-`scales` convierte entre escalas (nota sobre 4 → multiplica por 2.5). `ranges` asigna la puntuación: si la nota es ≥ 9.5 → 10 pts, si es ≥ 9 → 9.5 pts...
-
-Para `expediente_academico` es igual pero con `min_pct` (% de asignaturas aprobadas).
-
-#### Para documentos por keywords (`cv`, `carta`, `solicitud`)
-
-Cada campo tiene `keywords` (mapea palabra → puntuación) y/o `ranges` (mapea valor numérico → puntuación). El campo `weight` suma dentro del documento.
-
-**Ejemplo: cambiar CV para una convocatoria de informática:**
-
+**Ejemplo: cambiar el % mínimo de créditos:**
 ```json
-"cv": {
-  "method": "keyword",
-  "fields": {
-    "nivel_estudios": {
-      "weight": 3,
-      "keywords": {
-        "doctorado": 3, "master": 2.5, "grado": 2,
-        "fp superior": 1.5
-      },
-      "default": 0
-    },
-    "grupo_profesional": {
-      "weight": 4,
-      "keywords": {
-        "informática": 4, "ingeniería software": 4,
-        "tecnología": 3, "administración": 1
-      },
-      "default": 0.5
-    },
-    "experiencia": {
-      "weight": 3,
-      "ranges": [
-        { "min": 10, "score": 3 }, { "min": 5, "score": 2.5 },
-        { "min": 3, "score": 2 }, { "min": 1, "score": 1 },
-        { "min": 0, "score": 0.5 }
-      ]
-    }
-  }
+"c_creditos_50": {
+  "activo": true,
+  "min_ratio": 0.5,
+  "excepcion_titulaciones": ["master", "máster", "doctorado"]
 }
 ```
 
-**Ejemplo: que la carta de aceptación puntúe más según el firmante:**
-
+**Ejemplo: cambiar duración máxima de prácticas:**
 ```json
-"carta_aceptacion": {
-  "method": "keyword",
-  "fields": {
-    "tipo_institucion": {
-      "weight": 3,
-      "keywords": { "universidad": 3, "instituto": 1.5, "academia": 0.5 },
-      "default": 1
-    },
-    "firmante": {
-      "weight": 2,
-      "keywords": { "rector": 2, "decano": 2, "director": 1.5, "coordinador": 1 },
-      "default": 0.5
-    },
-    ...
-  }
+"e_practicas_misma_entidad": {
+  "activo": true,
+  "max_duracion_meses": 12
+}
+"f_practicas_maximo_total": {
+  "activo": true,
+  "max_duracion_meses": 24
 }
 ```
 
-> **Regla general**: la IA extrae los campos del documento, Python busca las keywords en esos campos y suma puntos. Si ninguna keyword coincide, usa `default`.
+> **Regla general**: la IA extrae los campos del documento, Python evalúa cada condición configurable. Si activas un requisito, el alumno debe cumplirlo para ser Apto.
 
 ## Uso
 
@@ -338,9 +298,9 @@ Si falta alguno → el alumno pasa a `descartados/` con indicación del motivo.
 ## Salida
 
 - `results/baremo_resultados.xlsx` — Excel con 3 hojas:
-  - **Admitidos**: ranking ordenado por puntuación
-  - **Descartados**: alumnos excluidos con motivo
-  - **Resumen**: métricas globales
+  - **Aptos**: alumnos que cumplen todos los requisitos con checklist
+  - **No aptos**: alumnos que no cumplen con detalle de requisitos fallados
+  - **Resumen**: desglose por requisito y métricas globales
 - `json/{alumno}.json` — datos extraídos por alumno
 - `temp/{alumno}_estado.md` — estado detallado por alumno
-- `temp/{alumno}_baremo.md` — baremo final por alumno
+- `temp/{alumno}_baremo.md` — resultado final por alumno

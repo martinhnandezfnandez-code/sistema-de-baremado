@@ -66,8 +66,13 @@ class LLMClient:
             ),
             "expediente_academico": (
                 "Extrae del siguiente expediente académico: nombre_estudiante, institucion, "
-                "carrera, año_inicio, año_fin, total_asignaturas, asignaturas_cursadas, asignaturas_aprobadas. "
-                "Responde JSON: {\"nombre_estudiante\": \"\", \"institucion\": \"\", \"carrera\": \"\", \"año_inicio\": \"\", \"año_fin\": \"\", \"total_asignaturas\": 0, \"asignaturas_cursadas\": 0, \"asignaturas_aprobadas\": 0}"
+                "carrera, año_inicio, año_fin, total_asignaturas, asignaturas_cursadas, asignaturas_aprobadas, "
+                "total_creditos (número total de créditos del plan de estudios), "
+                "creditos_superados (número de créditos aprobados), "
+                "tipo_titulacion (grado/máster/master/doctorado/licenciatura/diplomatura), "
+                "matricula_vigor (sí/no, si la matrícula está en vigor), "
+                "expediente_abierto (sí/no, si el expediente está abierto). "
+                "Responde JSON: {\"nombre_estudiante\": \"\", \"institucion\": \"\", \"carrera\": \"\", \"año_inicio\": \"\", \"año_fin\": \"\", \"total_asignaturas\": 0, \"asignaturas_cursadas\": 0, \"asignaturas_aprobadas\": 0, \"total_creditos\": 0, \"creditos_superados\": 0, \"tipo_titulacion\": \"\", \"matricula_vigor\": \"\", \"expediente_abierto\": \"\"}"
             ),
             "nota_media": (
                 "Extrae la nota media / GPA del siguiente documento. "
@@ -82,10 +87,20 @@ class LLMClient:
             ),
             "solicitud": (
                 "Extrae del siguiente documento de solicitud: nombre_completo, dni/pasaporte, "
-                "email, telefono, programa_solicitado, "
+                "email, telefono, programa_solicitado, universidad (universidad donde está matriculado), "
+                "tipo_estudiante (normal/movilidad/otras), "
+                "tipo_titulacion (grado/máster/master/doctorado/licenciatura), "
                 "completitud (completa/firmada/incompleta/parcial), "
-                "motivacion (alta/media/baja). "
-                "Responde JSON: {\"nombre_completo\": \"\", \"dni\": \"\", \"email\": \"\", \"telefono\": \"\", \"programa\": \"\", \"completitud\": \"\", \"motivacion\": \"\"}"
+                "motivacion (alta/media/baja), "
+                "interaccion_menores (sí/no, si la práctica implica interacción con menores), "
+                "interaccion_discapacidad (sí/no, si la práctica implica interacción con personas con discapacidad), "
+                "certificado_delitos (sí/no, si dispone del certificado negativo de delitos sexuales), "
+                "practicas_previas_entidad (nombre de la entidad donde hizo prácticas previas, o 'ninguna'), "
+                "duracion_practicas_entidad_meses (meses de prácticas en esa misma entidad), "
+                "duracion_practicas_total_meses (meses totales de prácticas realizadas), "
+                "bolsa_ayuda_actual (sí/no, si recibe actualmente una bolsa o ayuda económica), "
+                "meses_incorporado (meses que lleva incorporado en la entidad actual). "
+                "Responde JSON: {\"nombre_completo\": \"\", \"dni\": \"\", \"email\": \"\", \"telefono\": \"\", \"programa\": \"\", \"universidad\": \"\", \"tipo_estudiante\": \"\", \"tipo_titulacion\": \"\", \"completitud\": \"\", \"motivacion\": \"\", \"interaccion_menores\": \"\", \"interaccion_discapacidad\": \"\", \"certificado_delitos\": \"\", \"practicas_previas_entidad\": \"\", \"duracion_practicas_entidad_meses\": 0, \"duracion_practicas_total_meses\": 0, \"bolsa_ayuda_actual\": \"\", \"meses_incorporado\": 0}"
             ),
         }
         instruccion = schemas.get(categoria, "Extrae toda la información relevante en formato JSON.")

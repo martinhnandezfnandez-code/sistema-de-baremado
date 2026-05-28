@@ -16,114 +16,114 @@ class ExcelExporter:
 
     def export_results(
         self,
-        scored_students: list,
+        evaluated_students: list,
         rejected_students: list,
         filename: str = "baremo_resultados.xlsx",
     ) -> str:
-        """Generate Excel workbook with results.
-
-        Args:
-            scored_students: List of StudentScore.to_dict()
-            rejected_students: List of ValidationResult.to_dict()
-            filename: Output filename.
-
-        Returns:
-            Path to generated Excel file.
-        """
         wb = Workbook()
 
-        self._write_activos(wb, scored_students)
-        self._write_descartados(wb, rejected_students)
-        self._write_resumen(wb, scored_students, rejected_students)
+        self._write_aptos(wb, evaluated_students)
+        self._write_no_aptos(wb, evaluated_students)
+        self._write_resumen(wb, evaluated_students, rejected_students)
 
         output_path = self.output_dir / filename
         wb.save(str(output_path))
         logger.info(f"Excel generado: {output_path}")
         return str(output_path)
 
-    def _write_activos(self, wb: Workbook, students: list):
+    def _write_aptos(self, wb: Workbook, students: list):
         ws = wb.active
-        ws.title = "Admitidos"
+        ws.title = "Aptos"
 
-        # Collect all detail field names from all students
-        seen_cols: set[tuple[str, str]] = set()
-        for s in students:
-            for doc_type, fields in s.get("detalle_docs", {}).items():
-                for field_name in fields:
-                    seen_cols.add((doc_type, field_name))
-        detail_cols = sorted(seen_cols)
+        aptos = [s for s in students if s.get("apto")]
+        req_keys = self._get_requisito_keys(students)
 
-        headers = [
-            "Orden", "ID Alumno", "Puntuación Total",
-            "Nota Media", "Expediente", "CV",
-            "Carta Aceptación", "Solicitud",
-        ]
-        for doc_type, field_name in detail_cols:
-            label = f"{doc_type} ({field_name})" if doc_type != field_name else field_name
-            headers.append(label)
+        headers = ["Orden", "ID Alumno", "Estado", "Descripción"]
+        for rk in req_keys:
+            headers.append(f"Requisito: {rk}")
 
         self._style_header(ws, headers)
 
-        for i, s in enumerate(students, 1):
+        for i, s in enumerate(aptos, 1):
             row = i + 1
-            p = s.get("puntuaciones", {})
-            det = s.get("detalle_docs", {})
             col = 1
             ws.cell(row=row, column=col, value=s.get("orden", i)); col += 1
             ws.cell(row=row, column=col, value=s.get("student_id", "")); col += 1
-            ws.cell(row=row, column=col, value=s.get("puntuacion_total", 0)); col += 1
-            ws.cell(row=row, column=col, value=p.get("nota_media", "")); col += 1
-            ws.cell(row=row, column=col, value=p.get("expediente_academico", "")); col += 1
-            ws.cell(row=row, column=col, value=p.get("cv", "")); col += 1
-            ws.cell(row=row, column=col, value=p.get("carta_aceptacion", "")); col += 1
-            ws.cell(row=row, column=col, value=p.get("solicitud", "")); col += 1
-            for doc_type, field_name in detail_cols:
-                val = det.get(doc_type, {}).get(field_name, {}).get("puntos", "")
+            ws.cell(row=row, column=col, value=s.get("estado", "")); col += 1
+            ws.cell(row=row, column=col, value=s.get("descripcion", "")); col += 1
+            reqs = {r["clave"]: r for r in s.get("requisitos", [])}
+            for rk in req_keys:
+                r = reqs.get(rk, {})
+                val = "✓" if r.get("cumple") else "✗"
                 ws.cell(row=row, column=col, value=val); col += 1
 
         self._auto_width(ws, headers)
 
-    def _write_descartados(self, wb: Workbook, students: list):
-        ws = wb.create_sheet("Descartados")
+    def _write_no_aptos(self, wb: Workbook, students: list):
+        ws = wb.create_sheet("No aptos")
 
-        headers = [
-            "ID Alumno", "Estado", "Motivo",
-            "Docs Faltantes", "Docs Baja Confianza",
-        ]
+        no_aptos = [s for s in students if not s.get("apto")]
+        req_keys = self._get_requisito_keys(students)
+
+        headers = ["Orden", "ID Alumno", "Estado", "Descripción"]
+        for rk in req_keys:
+            headers.append(f"Requisito: {rk}")
+
         self._style_header(ws, headers)
 
-        for i, s in enumerate(students, 1):
+        for i, s in enumerate(no_aptos, 1):
             row = i + 1
-            ws.cell(row=row, column=1, value=s.get("student_id", ""))
-            ws.cell(row=row, column=2, value=s.get("estado", ""))
-            ws.cell(row=row, column=3, value=s.get("descripcion", ""))
-            ws.cell(row=row, column=4, value=", ".join(s.get("missing_docs", [])))
-            ws.cell(row=row, column=5, value=", ".join(s.get("low_confidence_docs", [])))
+            col = 1
+            ws.cell(row=row, column=col, value=s.get("orden", i)); col += 1
+            ws.cell(row=row, column=col, value=s.get("student_id", "")); col += 1
+            ws.cell(row=row, column=col, value=s.get("estado", "")); col += 1
+            ws.cell(row=row, column=col, value=s.get("descripcion", "")); col += 1
+            reqs = {r["clave"]: r for r in s.get("requisitos", [])}
+            for rk in req_keys:
+                r = reqs.get(rk, {})
+                val = "✓" if r.get("cumple") else "✗"
+                ws.cell(row=row, column=col, value=val); col += 1
 
         self._auto_width(ws, headers)
 
-    def _write_resumen(self, wb: Workbook, activos: list, descartados: list):
+    def _get_requisito_keys(self, students: list) -> list[str]:
+        keys: set[str] = set()
+        for s in students:
+            for r in s.get("requisitos", []):
+                keys.add(r.get("clave", ""))
+        return sorted(k for k in keys if k)
+
+    def _write_resumen(self, wb: Workbook, evaluados: list, descartados: list):
         ws = wb.create_sheet("Resumen")
 
         ws.cell(row=1, column=1, value="Métrica").font = Font(bold=True)
         ws.cell(row=1, column=2, value="Valor").font = Font(bold=True)
 
         ws.cell(row=2, column=1, value="Total Alumnos")
-        ws.cell(row=2, column=2, value=len(activos) + len(descartados))
+        ws.cell(row=2, column=2, value=len(evaluados))
 
-        ws.cell(row=3, column=1, value="Admitidos")
-        ws.cell(row=3, column=2, value=len(activos))
+        aptos = sum(1 for s in evaluados if s.get("apto"))
+        no_aptos = len(evaluados) - aptos
 
-        ws.cell(row=4, column=1, value="Descartados")
-        ws.cell(row=4, column=2, value=len(descartados))
+        ws.cell(row=3, column=1, value="Aptos")
+        ws.cell(row=3, column=2, value=aptos)
 
-        if activos:
-            ws.cell(row=6, column=1, value="Media Puntuación (Admitidos)")
-            media = sum(s.get("puntuacion_total", 0) for s in activos) / len(activos)
-            ws.cell(row=6, column=2, value=round(media, 2))
+        ws.cell(row=4, column=1, value="No aptos")
+        ws.cell(row=4, column=2, value=no_aptos)
 
-            ws.cell(row=7, column=1, value="Puntuación Máxima")
-            ws.cell(row=7, column=2, value=max(s.get("puntuacion_total", 0) for s in activos))
+        if evaluados and evaluados[0].get("requisitos"):
+            ws.cell(row=6, column=1, value="Desglose por requisito").font = Font(bold=True)
+            row_num = 7
+            req_keys = self._get_requisito_keys(evaluados)
+            for rk in req_keys:
+                total = len(evaluados)
+                cumplen = sum(1 for s in evaluados if any(
+                    r.get("clave") == rk and r.get("cumple") for r in s.get("requisitos", [])
+                ))
+                pct = (cumplen / total * 100) if total > 0 else 0
+                ws.cell(row=row_num, column=1, value=rk)
+                ws.cell(row=row_num, column=2, value=f"{cumplen}/{total} ({pct:.0f}%)")
+                row_num += 1
 
         self._auto_width(ws, ["Métrica", "Valor"])
 

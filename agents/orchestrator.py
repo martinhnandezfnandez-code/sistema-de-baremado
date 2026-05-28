@@ -59,12 +59,15 @@ class AgentOrchestrator:
                 rejected.append(rejection)
 
         # Generar Excel
-        if active_scores:
-            from scorer import Scorer
+        if active_scores or rejected:
+            from scorer import Evaluator
             from export import ExcelExporter
 
-            scorer = Scorer(baremo=self.config.get("baremo"), baremo_docs=self.config.get("baremo_docs"))
-            ranked_dicts = sorted(active_scores, key=lambda s: s["puntuacion_total"], reverse=True)
+            evaluator = Evaluator()
+            ranked_dicts = [s for s in sorted(active_scores, key=lambda x: x["student_id"])]
+            aptos = [s for s in ranked_dicts if s.get("apto")]
+            no_aptos = [s for s in ranked_dicts if not s.get("apto")]
+            ranked_dicts = aptos + no_aptos
             for i, s in enumerate(ranked_dicts, 1):
                 s["orden"] = i
 
@@ -72,7 +75,7 @@ class AgentOrchestrator:
             path = exporter.export_results(ranked_dicts, rejected)
             logger.info(f"\nExcel generado: {path}")
         else:
-            logger.warning("No hay alumnos activos para puntuar")
+            logger.warning("No hay alumnos para evaluar")
 
         logger.info(f"Resumen: {len(active_scores)} admitidos, {len(rejected)} descartados")
         logger.info("=== ORQUESTACIÓN COMPLETADA ===")
@@ -331,16 +334,16 @@ class AgentOrchestrator:
         estado_path.write_text(content, encoding="utf-8")
 
     def _calificador_run(self, student_id: str) -> tuple:
-        """Calificador: lee los revisores y genera baremo_final.md.
+        """Calificador: evalúa requisitos y genera resultado final.
 
         Returns:
-            (score_dict, None) si admitido,
-            (None, rejection_dict) si descartado.
+            (result_dict, None) si apto,
+            (None, rejection_dict) si no apto o descartado.
         """
-        from scorer import Scorer
+        from scorer import Evaluator
         from validator import Validator
 
-        logger.info(f"[CALIFICADOR] Puntuando a {student_id}")
+        logger.info(f"[CALIFICADOR] Evaluando a {student_id}")
 
         json_path = JSON_DIR / f"{student_id}.json"
 
@@ -354,35 +357,33 @@ class AgentOrchestrator:
 
         extracted = json.loads(json_path.read_text(encoding="utf-8"))
 
-        validator = Validator()
+        config_req = self.config.get("requisitos", {})
+        validator = Validator(config_requisitos=config_req)
         validation = validator.validate(student_id, extracted)
 
-        if validation.estado == "Descartado":
-            logger.info(f"  {student_id} descartado por validación: {validation.descripcion}")
-            return (None, validation.to_dict())
+        evaluator = Evaluator()
+        result = evaluator.evaluate(validation)
 
-        scorer = Scorer(baremo=self.config.get("baremo"), baremo_docs=self.config.get("baremo_docs"))
-        score = scorer.score_student(student_id, validation.datos)
-
-        # Guardar baremo_final.md
-        baremo_lines = [
-            f"# Baremo Final: {student_id}",
+        # Guardar resultado final
+        req_lines = [
+            f"# Resultado Final: {student_id}",
             f"",
-            f"**Puntuación Total:** {score.puntuacion_total}",
-            f"**Orden:** {score.orden}",
+            f"**Estado:** {result.estado}",
+            f"**Descripción:** {result.descripcion}",
             f"",
-            "## Puntuaciones por Documento",
+            "## Requisitos",
         ]
-        for dtype, pts in score.puntuaciones.items():
-            baremo_lines.append(f"- {dtype}: {pts}/10")
-        baremo_lines.append("")
-        baremo_lines.append(f"<promise>COMPLETADO</promise>")
+        for r in result.requisitos:
+            icono = "✓" if r.get("cumple") else "✗"
+            req_lines.append(f"- {icono} {r.get('clave')}: {r.get('detalle', '')}")
+        req_lines.append("")
+        req_lines.append(f"<promise>COMPLETADO</promise>")
 
         (TEMP_DIR / f"{student_id}_baremo.md").write_text(
-            "\n".join(baremo_lines), encoding="utf-8"
+            "\n".join(req_lines), encoding="utf-8"
         )
-        logger.info(f"  Puntuación: {score.puntuacion_total}")
-        return (score.to_dict(), None)
+        logger.info(f"  {student_id}: {result.estado}")
+        return (result.to_dict(), None)
 
     def _marcar_alumno_completado(self, student_id: str):
         """Planificador: marca alumno como COMPLETADO en tracking.md."""

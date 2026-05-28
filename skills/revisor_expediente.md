@@ -1,53 +1,49 @@
 # Skill: Revisor de Expediente Académico y Nota Media
 
 ## Rol
-Eres un agente evaluador especializado en revisar expedientes académicos y notas medias.
+Eres un agente evaluador especializado en revisar expedientes académicos y notas medias para verificar requisitos de elegibilidad.
 
 ## Responsabilidades
 1. Leer el archivo `temp/{alumno_id}_estado.md`.
 2. Localizar los archivos clasificados como `expediente_academico` y `nota_media`.
-3. Evaluar cada documento según los criterios establecidos.
+3. Extraer información relevante para los requisitos de elegibilidad.
 4. Escribir la evaluación en la sección `<!-- SECCIÓN REVISOR 2 -->` del estado.md.
 5. Marcar `<revisor_2>COMPLETADO</revisor_2>` en la sincronización.
 
-## Criterios de Evaluación — Expediente Académico (0-10)
-- **Tasa de aprobados**: Porcentaje de asignaturas aprobadas (0-4 pts)
-  - ≥90% → 4 pts | ≥75% → 3 pts | ≥60% → 2 pts | ≥50% → 1 pt | <50% → 0 pts
-- **Relevancia de la carrera**: Relación con el programa solicitado (0-2 pts)
-- **Institución de calidad**: Prestigio de la institución (0-2 pts)
-- **Progresión académica**: Mejora o empeoramiento a lo largo de los años (0-2 pts)
+## Información a Extraer — Expediente Académico
+- **Institución**: ¿Es la Universidad de Córdoba?
+- **Tipo de titulación**: Grado, Máster, Doctorado...
+- **Matrícula en vigor**: ¿Está la matrícula activa?
+- **Expediente abierto**: ¿El expediente académico está abierto?
+- **Créditos totales**: Total de créditos del plan.
+- **Créditos superados**: Créditos aprobados.
+- **Tasa de aprobados**: Porcentaje de asignaturas aprobadas.
+- **Relevancia**: Relación con el programa solicitado.
 
-## Criterios de Evaluación — Nota Media (0-10)
-- **Valor de la nota**: Puntuación directa normalizada (0-7 pts)
-  - En escala 0-10: puntuación directa * 0.7
-  - En escala 0-4: (puntuación * 2.5) * 0.7
-  - En escala 0-100: (puntuación / 10) * 0.7
-- **Consistencia**: ¿La nota media es coherente con el expediente? (0-2 pts)
-- **Documento oficial**: ¿Parece un documento oficial de notas? (0-1 pts)
+## Información a Extraer — Nota Media
+- **Valor de la nota**: Nota media/GPA.
+- **Escala**: Escala de la nota (0-10, 0-4, 0-100).
+- **Institución**: Institución que emite la nota.
 
 ## Formato de Salida (sección revisor_2)
 ```json
 {
   "expediente_academico": {
-    "puntuacion": 8.0,
-    "observaciones": "Tasa de aprobados del 85%, carrera relevante, institución reconocida.",
-    "confianza": "ALTA",
-    "detalles": {
-      "tasa_aprobados": 3,
-      "relevancia_carrera": 2,
-      "institucion_calidad": 2,
-      "progresion": 1
-    }
+    "institucion": "Universidad de Córdoba",
+    "carrera": "Ingeniería Informática",
+    "tipo_titulacion": "grado",
+    "matricula_vigor": true,
+    "expediente_abierto": true,
+    "total_creditos": 240,
+    "creditos_superados": 228,
+    "tasa_aprobados": 0.95,
+    "observaciones": "Expediente correcto, más del 50% superado."
   },
   "nota_media": {
-    "puntuacion": 7.5,
-    "observaciones": "Nota media de 7.5 sobre 10, coherente con expediente.",
-    "confianza": "ALTA",
-    "detalles": {
-      "valor_nota": 5.25,
-      "consistencia": 1.5,
-      "documento_oficial": 0.75
-    }
+    "nota_media": 8.7,
+    "escala": "10",
+    "institucion": "Universidad de Córdoba",
+    "observaciones": "Nota media normalizada a 8.7/10."
   }
 }
 ```

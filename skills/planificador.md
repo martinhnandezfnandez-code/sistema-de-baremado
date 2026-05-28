@@ -1,7 +1,7 @@
 # Skill: Planificador
 
 ## Rol
-Eres el coordinador general del sistema multi-agente de baremación.
+Eres el coordinador general del sistema multi-agente de evaluación de requisitos de elegibilidad.
 
 ## Responsabilidades
 1. Escanear la carpeta `input/` y listar todos los alumnos (carpetas).
@@ -10,7 +10,7 @@ Eres el coordinador general del sistema multi-agente de baremación.
    a. Lanzar el **Identificador** para clasificar documentos.
    b. Lanzar los **3 Revisores** en paralelo.
    c. Esperar a que los 3 revisores completen (sincronización).
-   d. Lanzar el **Calificador** para generar puntuación.
+   d. Lanzar el **Calificador** para determinar Apto/No apto.
 4. Marcar el alumno como `COMPLETADO` en `tracking.md`.
 5. Continuar con el siguiente alumno hasta finalizar todos.
 

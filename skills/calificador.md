@@ -1,46 +1,47 @@
 # Skill: Calificador
 
 ## Rol
-Eres el agente final que consolida las evaluaciones de los 3 revisores y genera la puntuación final.
+Eres el agente final que consolida las evaluaciones de los 3 revisores y determina si el alumno es APTO o NO APTO según los requisitos de elegibilidad.
 
 ## Responsabilidades
 1. Leer `temp/{alumno_id}_estado.md` con las evaluaciones de los 3 revisores.
 2. Verificar que los 3 revisores estén marcados como `COMPLETADO`.
-3. Consolidar las puntuaciones de cada revisor.
-4. Aplicar los pesos del baremo para calcular la puntuación total.
-5. Generar `temp/{alumno_id}_baremo.md` con el resultado final.
+3. Consolidar los datos extraídos de los revisores.
+4. Verificar que el alumno cumple todos los requisitos de elegibilidad.
+5. Generar `temp/{alumno_id}_baremo.md` con el resultado final (Apto/No apto).
 
-## Pesos del Baremo
-| Documento | Peso | Máximo |
-|---|---|---|
-| Nota Media | 40% | 10 pts |
-| Expediente | 30% | 10 pts |
-| CV | 15% | 10 pts |
-| Carta Aceptación | 10% | 10 pts |
-| Solicitud | 5% | 10 pts |
+## Requisitos de Elegibilidad
+| Clave | Requisito |
+|---|---|
+| a | Estar matriculado en la Universidad de Córdoba o Centros adscritos |
+| b | Disponer de matrícula en vigor y expediente abierto |
+| c | Haber superado el 50% de los créditos (Grado) |
+| d | Certificado negativo de delitos sexuales (si aplica) |
+| e | No superar duración máxima de prácticas en misma entidad |
+| f | No superar duración máxima total de prácticas |
+| g | Estudiantes de movilidad: sin incompatibilidad con bolsas |
+| h | No aceptar nueva práctica si implica renunciar a bolsa actual |
 
-## Cálculo
-```
-Puntuación Total = (NotaMedia * 0.40) + (Expediente * 0.30) + (CV * 0.15) + (Carta * 0.10) + (Solicitud * 0.05)
-```
+## Evaluación
+- **Apto**: Cumple TODOS los requisitos aplicables.
+- **No apto**: No cumple uno o más requisitos.
 
 ## Formato de Salida (baremo.md)
 ```markdown
-# Baremo Final: alumno_001
+# Resultado Final: alumno_001
 
-**Puntuación Total:** 8.15
-**Orden:** 1
+**Estado:** Apto
+**Descripción:** Cumple todos los requisitos de elegibilidad
 
-## Puntuaciones por Documento
-- carta_aceptacion: 8.5/10 → 0.85 pts (10%)
-- expediente_academico: 7.0/10 → 2.10 pts (30%)
-- nota_media: 8.0/10 → 3.20 pts (40%)
-- cv: 6.5/10 → 0.98 pts (15%)
-- solicitud: 9.0/10 → 0.45 pts (5%)
-
-<detalle>
-Resumen: Candidato con buena nota media y CV sólido.
-</detalle>
+## Requisitos
+- ✓ a_matriculado_uco: Matriculado en universidad válida
+- ✓ b_matricula_vigor: Matrícula en vigor y expediente abierto
+- ✓ c_creditos_50: Créditos superados 228/240 (95%) ≥ 50%
+- ✓ d_certificado_delitos: No requiere certificado
+- ✓ e_practicas_misma_entidad: Sin prácticas previas
+- ✓ f_practicas_maximo_total: 0 meses < 24 meses máximo
+- ✓ g_movilidad: Estudiante no es de movilidad
+- ✓ h_bolsa_renuncia: Sin bolsa activa
 
 <promise>COMPLETADO</promise>
 ```
@@ -48,5 +49,5 @@ Resumen: Candidato con buena nota media y CV sólido.
 ## Reglas
 - No modificar evaluaciones de los revisores.
 - Si algún revisor no está `COMPLETADO`, esperar.
-- La puntuación total es determinista: aplicar los pesos exactamente.
+- Si algún requisito no se cumple, el alumno es NO APTO.
 - Registrar cualquier anomalía (discrepancias entre revisores).
