@@ -54,6 +54,33 @@ class LLMClient:
         raw = self._call(system, f"Texto del documento:\n\n{text[:3000]}")
         return self._parse_json(raw)
 
+    def process_document(self, text: str) -> dict:
+        """Clasifica y extrae datos de un documento en una sola llamada.
+
+        Returns:
+            {"categoria": "...", "confianza": "...", "justificacion": "...", "datos": {...}}
+        """
+        system = (
+            "Eres un clasificador y extractor de documentos académicos.\n\n"
+            "Primero clasifica el texto en UNA de estas categorías:\n"
+            "- solicitud (formulario de solicitud de admisión)\n"
+            "- carta_aceptacion (carta de aceptación del programa)\n"
+            "- expediente_academico (historial académico, notas, materias cursadas)\n"
+            "- nota_media (documento que indica la nota media/GPA)\n"
+            "- cv (curriculum vitae)\n"
+            "- desconocido\n\n"
+            "Luego extrae los datos específicos según la categoría.\n\n"
+            "Campos por categoría:\n"
+            "carta_aceptacion: {\"institucion\": \"\", \"programa\": \"\", \"fecha_inicio\": \"\", \"fecha_fin\": \"\", \"nombre_estudiante\": \"\", \"nombre_firmante\": \"\", \"cargo_firmante\": \"\", \"tipo_institucion\": \"universidad/facultad/escuela/instituto/centro/academia/otros\", \"tipo_programa\": \"doctorado/master/grado/licenciatura/diplomatura/curso/otros\", \"duracion_meses\": 0}\n"
+            "expediente_academico: {\"nombre_estudiante\": \"\", \"institucion\": \"\", \"carrera\": \"\", \"año_inicio\": \"\", \"año_fin\": \"\", \"total_asignaturas\": 0, \"asignaturas_cursadas\": 0, \"asignaturas_aprobadas\": 0, \"total_creditos\": 0, \"creditos_superados\": 0, \"tipo_titulacion\": \"grado/máster/master/doctorado/licenciatura/diplomatura\", \"matricula_vigor\": \"sí/no\", \"expediente_abierto\": \"sí/no\"}\n"
+            "nota_media: {\"nota_media\": 0.0, \"escala\": \"\", \"nombre_estudiante\": \"\", \"institucion\": \"\"}\n"
+            "cv: {\"nombre_completo\": \"\", \"email\": \"\", \"telefono\": \"\", \"titulacion\": \"\", \"anos_experiencia\": 0, \"habilidades_clave\": [], \"idiomas\": [], \"nivel_estudios\": \"doctorado/master/grado/licenciatura/fp/bachillerato/secundaria\", \"grupo_profesional\": \"sanidad/educacion/ingenieria/tecnologia/administracion/comercial/otros\"}\n"
+            "solicitud: {\"nombre_completo\": \"\", \"dni\": \"\", \"email\": \"\", \"telefono\": \"\", \"programa\": \"\", \"universidad\": \"\", \"tipo_estudiante\": \"normal/movilidad/otras\", \"tipo_titulacion\": \"grado/máster/master/doctorado/licenciatura\", \"completitud\": \"completa/firmada/incompleta/parcial\", \"motivacion\": \"alta/media/baja\", \"interaccion_menores\": \"sí/no\", \"interaccion_discapacidad\": \"sí/no\", \"certificado_delitos\": \"sí/no\", \"practicas_previas_entidad\": \"\", \"duracion_practicas_entidad_meses\": 0, \"duracion_practicas_total_meses\": 0, \"bolsa_ayuda_actual\": \"sí/no\", \"meses_incorporado\": 0}\n\n"
+            "Responde SOLO con JSON exactamente así: {\"categoria\": \"...\", \"confianza\": \"ALTA|MEDIA|BAJA\", \"justificacion\": \"...\", \"datos\": {...}}"
+        )
+        raw = self._call(system, f"Documento:\n\n{text[:4000]}")
+        return self._parse_json(raw)
+
     def extract_data(self, categoria: str, text: str) -> dict:
         schemas = {
             "carta_aceptacion": (

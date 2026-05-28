@@ -48,10 +48,8 @@ def get_student_folders(input_dir: str = "input") -> list[str]:
 
 
 def run_pipeline_mode(config: dict):
-    """Pipeline directo: clasifica, extrae, valida requisitos, evalúa y exporta."""
+    """Pipeline directo: clasifica+extrae, valida requisitos, evalúa y exporta."""
     from llm_client import LLMClient
-    from classifier import Classifier
-    from extractor import Extractor
     from validator import Validator
     from scorer import Evaluator
     from export import ExcelExporter
@@ -59,8 +57,6 @@ def run_pipeline_mode(config: dict):
     from pdf_utils import extract_texts_from_student
 
     llm = LLMClient()
-    classifier = Classifier(llm)
-    extractor = Extractor(llm)
     validator = Validator(config_requisitos=config.get("requisitos", {}))
     evaluator = Evaluator()
     exporter = ExcelExporter()
@@ -83,13 +79,17 @@ def run_pipeline_mode(config: dict):
             })
             continue
 
-        # 2 — Clasificar
-        logger.info(f"  Clasificando {len(pdf_texts)} documento(s)...")
-        classified = classifier.classify(pdf_texts)
-
-        # 3 — Extraer datos
-        logger.info("  Extrayendo datos estructurados...")
-        extracted = extractor.extract_all(classified)
+        # 2 — Clasificar y extraer en una sola llamada por PDF
+        logger.info(f"  Procesando {len(pdf_texts)} documento(s)...")
+        extracted = {}
+        for fname, text in pdf_texts.items():
+            logger.info(f"    {fname}...")
+            result = llm.process_document(text)
+            if result and not result.get("error"):
+                categoria = result.get("categoria", "desconocido")
+                datos = result.get("datos", {})
+                confianza = result.get("confianza", "BAJA")
+                extracted[categoria] = {"file": fname, "confianza": confianza, "datos": datos}
 
         # Guardar JSON individual
         json_dir = Path(config.get("json_dir", "json"))
@@ -97,17 +97,17 @@ def run_pipeline_mode(config: dict):
         with open(json_dir / f"{sid}.json", "w", encoding="utf-8") as f:
             json.dump(extracted, f, indent=2, ensure_ascii=False)
 
-        # 4 — Validar requisitos
+        # 3 — Validar requisitos
         logger.info("  Validando requisitos de elegibilidad...")
         validation = validator.validate(sid, extracted)
         logger.info(f"  Estado: {validation.estado} — {validation.descripcion}")
 
-        # 5 — Evaluar (apto/no apto)
+        # 4 — Evaluar (apto/no apto)
         logger.info("  Evaluando resultado...")
         result = evaluator.evaluate(validation)
         results.append(result.to_dict())
 
-    # 6 — Ranking & Export
+    # 5 — Ranking & Export
     if results:
         aptos = [s for s in results if s.get("apto")]
         no_aptos = [s for s in results if not s.get("apto")]

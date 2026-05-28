@@ -119,17 +119,15 @@ class AgentOrchestrator:
             return (None, rejection)
 
     def _identificador_run(self, student_id: str) -> tuple:
-        """Identificador: clasifica documentos y genera estado.md.
+        """Identificador: clasifica y extrae datos de documentos en una sola pasada.
 
         Returns:
             (estado_dict, None) si el alumno sigue activo,
             (None, rejection_dict) si es descartado.
         """
         from pdf_utils import extract_texts_from_student
-        from classifier import Classifier
-        from extractor import Extractor
 
-        logger.info(f"[IDENTIFICADOR] Clasificando documentos de {student_id}")
+        logger.info(f"[IDENTIFICADOR] Procesando documentos de {student_id}")
 
         pdf_texts = extract_texts_from_student(student_id)
         if not pdf_texts:
@@ -141,11 +139,32 @@ class AgentOrchestrator:
             self._mover_a_descartados(student_id, "Sin PDFs legibles")
             return (None, rejection)
 
-        classifier = Classifier(self.llm)
-        classified = classifier.classify(pdf_texts)
+        classified = {}
+        extracted = {}
 
-        extractor = Extractor(self.llm)
-        extracted = extractor.extract_all(classified)
+        for fname, text in pdf_texts.items():
+            logger.info(f"  Procesando {fname}...")
+            result = self.llm.process_document(text)
+            if not result or result.get("error"):
+                logger.warning(f"  Error procesando {fname}")
+                classified.setdefault("desconocido", []).append({"file": fname, "error": "parse_failed"})
+                continue
+
+            categoria = result.get("categoria", "desconocido")
+            confianza = result.get("confianza", "BAJA")
+            datos = result.get("datos", {})
+
+            classified.setdefault(categoria, []).append({
+                "file": fname,
+                "confianza": confianza,
+                "text": text,
+            })
+            extracted[categoria] = {
+                "file": fname,
+                "confianza": confianza,
+                "datos": datos,
+            }
+            logger.info(f"    → {categoria} ({confianza})")
 
         # Guardar JSON
         (JSON_DIR / f"{student_id}.json").write_text(
