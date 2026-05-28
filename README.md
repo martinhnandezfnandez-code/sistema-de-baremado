@@ -305,3 +305,25 @@ Si falta alguno → el alumno pasa a `descartados/` con indicación del motivo.
 - `json/{alumno}.json` — datos extraídos por alumno
 - `temp/{alumno}_estado.md` — estado detallado por alumno
 - `temp/{alumno}_baremo.md` — resultado final por alumno
+
+## Changelog
+
+### v2.1 — Fusionar clasificación + extracción
+- Nueva método `process_document()` en `llm_client.py`: clasifica y extrae datos en **1 sola llamada** por PDF
+- Reducción de ~5 a ~3 llamadas LLM por alumno
+- `classifier.py` y `extractor.py` ya no se usan en el flujo principal
+
+### v2.0 — Validación binaria de requisitos (a-h)
+- Sustituido baremo numérico (nota media 40%, expediente 30%, etc.) por **8 requisitos de elegibilidad** (a-h) basados en el Reglamento de Prácticas Académicas Externas de la UCO
+- Resultado **Apto/No apto** en lugar de puntuación numérica
+- Eliminados los 3 revisores IA (ya no aportaban valor a la decisión final)
+- `validator.py`: 8 métodos de validación configurables desde `config.json`
+- `scorer.py`: simplificado a `Evaluator` binario
+- `export.py`: Excel con checklist de requisitos por alumno
+- Nuevos campos de extracción en `llm_client.py` (universidad, créditos, matrícula, prácticas previas, etc.)
+
+### v1.0 — Baremación numérica (original)
+- Sistema original con puntuaciones 0-10 por documento
+- Pesos: nota media 40%, expediente 30%, CV 15%, carta 10%, solicitud 5%
+- 3 revisores IA para evaluación cualitativa
+- Ranking ordenado por puntuación total
